@@ -383,27 +383,48 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                      </h3>
                      <div className="flex-1 flex flex-col gap-4">
                         {/* 50% SUPERIOR: MATRIZ DE EFEITOS */}
-                        <div className="flex-1 p-4 bg-purple-900/10 border border-purple-500/20 rounded-sm overflow-y-auto no-scrollbar">
+                        <div className="flex-1 p-4 bg-purple-900/10 border border-purple-500/20 rounded-sm overflow-y-auto no-scrollbar shadow-inner">
                            <span className="text-[11px] font-black text-white uppercase tracking-widest block mb-2">{selectedWeaponDetail.efeito_especial || 'NENHUM EFEITO DETECTADO'}</span>
                            <p className="text-[13px] text-slate-400 leading-relaxed italic">
                               {selectedWeaponDetail.desc_efeito || 'O Sistema não identificou modificadores anômalos para este artefato.'}
                            </p>
                         </div>
 
-                        {/* 50% INFERIOR: AUTENTICAÇÃO DE PATENTE (SIMPLIFICADO) */}
+                        {/* 50% INFERIOR: EMBLERMA DE PATENTE PREMIUM */}
                         <div className="flex-1 pt-4 border-t border-slate-800/50 flex flex-col gap-3 justify-center">
                            <div className="flex items-center justify-between">
-                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">AUTENTICAÇÃO DE PATENTE</span>
-                              <span className="text-[8px] font-black text-emerald-500/60 uppercase italic">SISTEMA VALIDADO</span>
+                              <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.4em]">AUTENTICAÇÃO DE PATENTE</span>
+                              <div className="flex items-center gap-1.5">
+                                 <div className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse" />
+                                 <span className="text-[8px] font-black text-emerald-500/60 uppercase italic">SISTEMA VALIDADO</span>
+                              </div>
                            </div>
-                           <div className="flex items-center justify-center bg-black/40 p-4 rounded-sm border border-slate-800/60 group-hover:border-blue-500/30 transition-all flex-1">
-                              <div className="flex flex-col items-center">
-                                 <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em] mb-2 italic">ARTEFATO CLASSIFICADO</span>
-                                 <div className="flex items-baseline gap-4">
-                                    <span className="text-2xl font-black text-white/30 uppercase italic tracking-widest">RANK</span>
-                                    <span className={`text-8xl font-black italic tracking-tighter leading-none ${getRankColor(selectedWeaponDetail.rank).split(' ')[0]} drop-shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all duration-700`}>
-                                       {selectedWeaponDetail.rank}
-                                    </span>
+                           
+                           <div className="flex flex-col items-center justify-center bg-[#010203] p-4 rounded-sm border border-slate-800/60 group-hover:border-blue-500/30 transition-all flex-1 relative overflow-hidden">
+                              {/* Scanline Effect */}
+                              <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none opacity-20" />
+                              
+                              {/* Decorative Crosshairs */}
+                              <div className="absolute top-2 left-2 text-slate-800"><Plus size={10} /></div>
+                              <div className="absolute top-2 right-2 text-slate-800"><Plus size={10} /></div>
+                              <div className="absolute bottom-2 left-2 text-slate-800"><Plus size={10} /></div>
+                              <div className="absolute bottom-2 right-2 text-slate-800"><Plus size={10} /></div>
+
+                              <div className="relative z-10 flex flex-col items-center">
+                                 <div className={`absolute w-32 h-32 rounded-full blur-[60px] opacity-10 ${getRankColor(selectedWeaponDetail.rank).replace('text', 'bg').split(' ')[0]}`} />
+                                 
+                                 <div className="flex flex-col items-center">
+                                    <div className="flex items-baseline gap-4 mb-1">
+                                       <span className="text-xl font-black text-white/10 uppercase italic tracking-tighter">RANK</span>
+                                       <span className={`text-7xl font-black italic tracking-tighter leading-none ${getRankColor(selectedWeaponDetail.rank).split(' ')[0]} drop-shadow-[0_0_25px_currentColor]`}>
+                                          {selectedWeaponDetail.rank}
+                                       </span>
+                                    </div>
+                                    <div className="flex items-center gap-4 w-full">
+                                       <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-slate-800" />
+                                       <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.5em] italic">ARTEFATO CLASSIFICADO</span>
+                                       <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-slate-800" />
+                                    </div>
                                  </div>
                               </div>
                            </div>
