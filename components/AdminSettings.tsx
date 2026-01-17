@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Lock, Database, Sword, Trash2, Save, X, 
@@ -7,7 +6,7 @@ import {
   Info, Sparkles, RotateCcw, ChevronDown, Zap, 
   Crosshair, BookOpen, ChevronRight, Dumbbell, 
   Brain, Zap as AgilityIcon, ArrowRight, ArrowLeftRight,
-  Image as ImageIcon, Layers, TrendingUp, LockKeyhole,
+  ImageIcon, Layers, TrendingUp, LockKeyhole,
   Upload, CheckCircle2, ImageOff, ShieldAlert,
   Target, Swords, Repeat, ScrollText
 } from 'lucide-react';
@@ -66,7 +65,8 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
   const initialFormState = {
     nome: '',
     rank: 'E',
-    dano_base: 0,
+    dano_base: 0, // Dano Inicial
+    dano_max: 0,  // Dano Atual/Máximo
     atributo_principal: 'FORÇA',
     efeito_especial: '',
     desc_efeito: '',
@@ -166,6 +166,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
       const payload = { 
         ...formData, 
         dano_base: Number(formData.dano_base),
+        dano_max: Number(formData.dano_max),
         nivel_desbloqueio: Number(formData.nivel_desbloqueio),
         lvl_min: Number(formData.lvl_min),
         lvl_max: Number(formData.lvl_max)
@@ -264,6 +265,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
 
             {weaponSubTab === 'LISTA' ? (
               <div className="space-y-8 w-full">
+                {/* FORMULÁRIO DE REGISTRO - ATUALIZADO COM NOVOS CAMPOS */}
                 <div className="bg-[#030712] border border-slate-800 p-6 rounded-sm relative overflow-hidden animate-in slide-in-from-top-4 duration-500 w-full">
                   <div className={`absolute top-0 left-0 w-1 h-full ${editingId ? 'bg-amber-500' : 'bg-blue-600'}`} />
                   <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
@@ -286,7 +288,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                         <FormGroup label="DANO INICIAL" type="number" value={formData.dano_base} onChange={(v:any) => setFormData({...formData, dano_base:v})} />
                       </div>
                       <div className="md:col-span-2">
-                        <FormGroup label="NV. DESBLOQUEIO" type="number" value={formData.nivel_desbloqueio} onChange={(v:any) => setFormData({...formData, nivel_desbloqueio:v})} />
+                        <FormGroup label="DANO ATUAL (MÁX)" type="number" value={formData.dano_max} onChange={(v:any) => setFormData({...formData, dano_max:v})} />
                       </div>
                     </div>
 
@@ -295,14 +297,17 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                         <FormGroup label="LEVEL MÍNIMO" type="number" value={formData.lvl_min} onChange={(v:any) => setFormData({...formData, lvl_min:v})} />
                       </div>
                       <div className="md:col-span-2">
-                        <FormGroup label="LEVEL MÁXIMO (TETO)" type="number" value={formData.lvl_max} onChange={(v:any) => setFormData({...formData, lvl_max:v})} />
+                        <FormGroup label="LEVEL MÁXIMO" type="number" value={formData.lvl_max} onChange={(v:any) => setFormData({...formData, lvl_max:v})} />
                       </div>
-                      <div className="md:col-span-4">
-                        <FormGroup label="MATERIAL DE UPGRADE" value={formData.material_upgrade} onChange={(v:any) => setFormData({...formData, material_upgrade:v})} placeholder="Ex: Pedra de Mana Comum" />
+                      <div className="md:col-span-2">
+                        <FormGroup label="NV. DESBLOQUEIO" type="number" value={formData.nivel_desbloqueio} onChange={(v:any) => setFormData({...formData, nivel_desbloqueio:v})} />
+                      </div>
+                      <div className="md:col-span-3">
+                        <FormGroup label="MATERIAL DE REFINO" value={formData.material_upgrade} onChange={(v:any) => setFormData({...formData, material_upgrade:v})} placeholder="Ex: Fragmento de Ferro" />
                       </div>
                       
-                      <div className="md:col-span-4 flex flex-col gap-1.5">
-                        <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-0.5">MANUAL UPLOAD (.PNG)</label>
+                      <div className="md:col-span-3 flex flex-col gap-1.5">
+                        <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-0.5">UPLOAD VISUAL (.PNG)</label>
                         <div onClick={() => !isUploading && fileInputRef.current?.click()} className={`w-full h-9 bg-slate-950 border border-slate-800 rounded-sm flex items-center px-4 cursor-pointer hover:border-blue-500 transition-all group overflow-hidden ${formData.img ? 'border-emerald-500/50' : ''} ${isUploading ? 'cursor-wait opacity-70' : ''}`}>
                           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                           <div className="flex items-center justify-between w-full">
@@ -323,16 +328,16 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 border-t border-slate-800/50 pt-6">
                       <div className="md:col-span-4">
-                        <FormGroup label="EFEITO PASSIVO" value={formData.efeito_especial} onChange={(v:any) => setFormData({...formData, efeito_especial:v})} placeholder="Ex: Sangramento" />
+                        <FormGroup label="EFEITO PASSIVO" value={formData.efeito_especial} onChange={(v:any) => setFormData({...formData, efeito_especial:v})} placeholder="Ex: Sangramento Crítico" />
                       </div>
                       <div className="md:col-span-8">
-                        <FormGroup label="DESCRIÇÃO DO EFEITO" value={formData.desc_efeito} onChange={(v:any) => setFormData({...formData, desc_efeito:v})} placeholder="Detalhes técnicos sobre os modificadores de realidade..." />
+                        <FormGroup label="DESCRIÇÃO DO EFEITO" value={formData.desc_efeito} onChange={(v:any) => setFormData({...formData, desc_efeito:v})} placeholder="Explicação técnica da vantagem tática..." />
                       </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 border-t border-slate-800/50 pt-6">
                       <div className="md:col-span-10">
-                        <FormGroup label="HISTÓRIA DO ARTEFATO (LORE)" type="textarea" value={formData.historia} onChange={(v:any) => setFormData({...formData, historia:v})} placeholder="Narre as origens e feitos épicos deste armamento nas fendas dimensionais..." />
+                        <FormGroup label="REGISTRO DE MEMÓRIA (LORE)" type="textarea" value={formData.historia} onChange={(v:any) => setFormData({...formData, historia:v})} placeholder="A história forjada por trás desta lâmina..." />
                       </div>
                       <div className="md:col-span-2 flex items-end">
                          <button disabled={isSaving || isUploading} className={`w-full h-12 ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'} text-white text-[10px] font-black uppercase flex items-center justify-center gap-2 transition-all rounded-sm disabled:opacity-50 shadow-lg`}>
@@ -343,40 +348,76 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                   </form>
                 </div>
 
+                {/* LISTAGEM DETALHADA - ATUALIZADA COM NOVAS COLUNAS */}
                 <div className="space-y-4 w-full">
                   <div className="bg-slate-900/40 border border-slate-800/40 h-10 flex items-center px-5 rounded-sm w-full">
-                    <div className="w-[30%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-left">ARTEFATO</div>
-                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">RANK</div>
-                    <div className="w-[15%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">DESBLOQUEIO</div>
-                    <div className="w-[15%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">DANO BASE</div>
-                    <div className="w-[15%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">LEVEL TETO</div>
-                    <div className="w-[15%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-right">AÇÕES</div>
+                    <div className="w-[20%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-left">ARTEFATO</div>
+                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">RANK/ATTR</div>
+                    <div className="w-[15%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">DANO (INI x ATU)</div>
+                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">DESBLOQUEIO</div>
+                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">LEVEL (MÍN x MÁX)</div>
+                    <div className="w-[25%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">EFEITO PASSIVO</div>
+                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-right">AÇÕES</div>
                   </div>
                   <div className="flex flex-col gap-2">
                     {items.map((item) => {
                       const rankTheme = getRankClass(item.rank);
                       return (
-                        <div key={item.id} className="bg-[#030712] border border-slate-800 h-20 flex items-center px-5 group hover:border-slate-600 transition-all relative overflow-hidden rounded-sm w-full">
+                        <div key={item.id} className="bg-[#030712] border border-slate-800 h-24 flex items-center px-5 group hover:border-slate-600 transition-all relative overflow-hidden rounded-sm w-full">
                           <div className={`absolute left-0 top-0 h-full w-1 ${rankTheme.border}`} />
-                          <div className="w-[30%] flex items-center gap-4 min-w-0">
+                          
+                          {/* Artefato */}
+                          <div className="w-[20%] flex items-center gap-3 min-w-0">
                             <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-sm flex items-center justify-center overflow-hidden flex-shrink-0">
                               {item.img ? <img src={item.img} className="w-full h-full object-cover" alt={item.nome} /> : <Sword size={20} className="text-slate-800" />}
                             </div>
                             <div className="flex flex-col min-w-0">
-                              <h4 className="text-[12px] font-black text-white uppercase italic tracking-tighter truncate pr-2">{item.nome}</h4>
-                              <span className="text-[8px] font-black text-slate-600 uppercase">{item.atributo_principal}</span>
+                              <h4 className="text-[11px] font-black text-white uppercase italic tracking-tighter truncate">{item.nome}</h4>
+                              <span className="text-[7px] font-bold text-slate-600 truncate">{item.material_upgrade}</span>
                             </div>
                           </div>
-                          <div className={`w-[10%] text-[14px] font-black ${rankTheme.text} italic text-center`}>{item.rank}</div>
-                          <div className="w-[15%] flex justify-center">
-                             <div className="inline-flex items-center gap-1.5 px-2 py-0.5 bg-blue-900/10 border border-blue-500/20 rounded-sm">
-                                <LockKeyhole size={8} className="text-blue-500" />
-                                <span className="text-[10px] font-black text-blue-400">NV.{item.nivel_desbloqueio}</span>
+
+                          {/* Rank/Attr */}
+                          <div className="w-[10%] flex flex-col items-center gap-1">
+                             <span className={`text-[12px] font-black ${rankTheme.text} italic`}>{item.rank}</span>
+                             <div className="flex items-center gap-1 opacity-60">
+                                {getAttributeIcon(item.atributo_principal)}
+                                <span className="text-[8px] font-black text-white">{item.atributo_principal.substring(0,3)}</span>
                              </div>
                           </div>
-                          <div className="w-[15%] text-[11px] font-black text-emerald-400 tabular-nums text-center">{item.dano_base} ATK</div>
-                          <div className="w-[15%] text-[11px] font-black text-slate-400 text-center">{item.lvl_min} <span className="text-[8px] text-slate-700 mx-1">→</span> {item.lvl_max}</div>
-                          <div className="w-[15%] flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+
+                          {/* Dano */}
+                          <div className="w-[15%] text-center">
+                             <div className="flex items-center justify-center gap-2">
+                                <span className="text-[12px] font-black text-white">{item.dano_base}</span>
+                                <ArrowRight size={10} className="text-slate-700" />
+                                <span className="text-[12px] font-black text-emerald-400">{item.dano_max || item.dano_base}</span>
+                             </div>
+                             <span className="text-[7px] font-black text-slate-600 uppercase">Potência Bélica</span>
+                          </div>
+
+                          {/* Desbloqueio */}
+                          <div className="w-[10%] flex justify-center">
+                             <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-900/10 border border-blue-500/20 rounded-sm">
+                                <LockKeyhole size={8} className="text-blue-500" />
+                                <span className="text-[9px] font-black text-blue-400">LV.{item.nivel_desbloqueio}</span>
+                             </div>
+                          </div>
+
+                          {/* Level Mín x Máx */}
+                          <div className="w-[10%] text-center">
+                             <span className="text-[10px] font-black text-slate-400">{item.lvl_min} <span className="text-slate-700">/</span> {item.lvl_max}</span>
+                             <p className="text-[7px] font-black text-slate-600 uppercase mt-0.5">Escala Lvl</p>
+                          </div>
+
+                          {/* Efeito Passivo */}
+                          <div className="w-[25%] px-4 border-l border-r border-slate-800/50">
+                             <span className="text-[9px] font-black text-purple-400 uppercase tracking-tighter block truncate">{item.efeito_especial || 'NENHUM'}</span>
+                             <p className="text-[8px] text-slate-500 italic line-clamp-2 leading-tight mt-1">{item.desc_efeito || 'Sem descrição técnica.'}</p>
+                          </div>
+
+                          {/* Ações */}
+                          <div className="w-[10%] flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
                              <button onClick={() => { setEditingId(item.id); setFormData({...item}); window.scrollTo({top:0, behavior:'smooth'}); }} className="p-2 text-slate-600 hover:text-amber-500 transition-all" title="Editar"><Edit3 size={16}/></button>
                              <button onClick={() => deleteRecord('armas', item.id)} className="p-2 text-slate-600 hover:text-rose-500 transition-all" title="Excluir"><Trash2 size={16}/></button>
                           </div>

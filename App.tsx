@@ -1,3 +1,4 @@
+
 import React, { useState, useCallback, useEffect } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
@@ -20,10 +21,7 @@ const App: React.FC = () => {
   const [activeEvent, setActiveEvent] = useState<any>(null);
   const [evolutionData, setEvolutionData] = useState<any>(null);
   
-  // LOGICA DE RANK SELECTION
   const [selectedRank, setSelectedRank] = useState<ItemRank | null>(null);
-
-  // ESTADO GLOBAL DE NIVEL (Este é o único dado que compartilha a trava de desbloqueio)
   const [globalLevel, setGlobalLevel] = useState<number>(() => {
     const saved = localStorage.getItem('global_player_level');
     return saved ? parseInt(saved) : 1;
@@ -33,7 +31,6 @@ const App: React.FC = () => {
     localStorage.setItem('global_player_level', globalLevel.toString());
   }, [globalLevel]);
 
-  // ESTADOS ESPECÍFICOS POR RANK (LocalStorage dinâmico)
   const getRankKey = (key: string) => `rank_${selectedRank || 'E'}_${key}`;
 
   const [habits, setHabits] = useState<Habit[]>([]);
@@ -41,7 +38,6 @@ const App: React.FC = () => {
   const [vices, setVices] = useState<Vice[]>([]);
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
 
-  // Carregar dados quando o Rank mudar
   useEffect(() => {
     if (!selectedRank) return;
 
@@ -64,7 +60,6 @@ const App: React.FC = () => {
     
     if (savedStatus) {
       const parsed = JSON.parse(savedStatus);
-      // Garantir que o nível e rank condizem com a seleção global
       parsed.level = globalLevel;
       parsed.rank = selectedRank;
       setPlayerStatus(parsed);
@@ -73,7 +68,6 @@ const App: React.FC = () => {
     }
   }, [selectedRank]);
 
-  // Salvar dados quando houver mudanças
   useEffect(() => {
     if (!selectedRank) return;
     localStorage.setItem(getRankKey('habits'), JSON.stringify(habits));
@@ -92,13 +86,11 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!selectedRank || !playerStatus) return;
     localStorage.setItem(getRankKey('status'), JSON.stringify(playerStatus));
-    // Sincronizar nível global se o interno mudar
     if (playerStatus.level !== globalLevel) {
       setGlobalLevel(playerStatus.level);
     }
   }, [playerStatus, selectedRank]);
 
-  // LOGICA DE EVOLUÇÃO
   useEffect(() => {
     if (!playerStatus) return;
 
@@ -111,7 +103,6 @@ const App: React.FC = () => {
       const rankOrder: ItemRank[] = ['E', 'D', 'C', 'B', 'A', 'S'];
       let newRank = oldRank;
       
-      // Lógica de Rank Up automática por nível (opcional, já que temos a segregação)
       if (newLevel % 100 === 0 && rankOrder.indexOf(oldRank) < rankOrder.length - 1) {
         newRank = rankOrder[rankOrder.indexOf(oldRank) + 1];
       }
@@ -200,37 +191,12 @@ const App: React.FC = () => {
     });
   };
 
-  const today = new Date().toISOString().split('T')[0];
-
-  const handleMissionAction = (type: 'HABITO' | 'TAREFA' | 'VICIO', id: string) => {
-    if (!playerStatus) return;
-    if (type === 'HABITO') {
-      const h = habits.find(x => x.id === id);
-      if (!h || h.completedDays[today]) return;
-      setHabits(prev => prev.map(x => x.id === id ? { ...x, completedDays: { ...x.completedDays, [today]: true }, streak: x.streak + 1 } : x));
-      setPlayerStatus(prev => prev ? ({ ...prev, xp: prev.xp + h.xpReward, mp: Math.min(prev.maxMp, prev.mp + 5) }) : null);
-      addNotification(`Hábito: +${h.xpReward} XP | +5 MP`, 'success');
-    } else if (type === 'TAREFA') {
-      const t = tasks.find(x => x.id === id);
-      if (!t) return;
-      if (t.isRecurring) {
-        setTasks(prev => prev.map(x => x.id === id ? { ...x, lastCompleted: today } : x));
-      } else {
-        setTasks(prev => prev.map(x => x.id === id ? { ...x, completed: true } : x));
-      }
-      setPlayerStatus(prev => prev ? ({ ...prev, xp: prev.xp + t.xpReward }) : null);
-      addNotification(`Tarefa: +${t.xpReward} XP`, 'success');
-    }
-  };
-
-  // TELA DE SELEÇÃO INICIAL
   if (!selectedRank) {
     return <RankSelector currentLevel={globalLevel} onSelectRank={setSelectedRank} />;
   }
 
-  // TELA DO SISTEMA PRINCIPAL (RANK ATIVO)
   return (
-    <div className="flex min-h-screen w-full bg-[#010307] text-slate-200 font-sans">
+    <div className="flex h-screen w-full bg-[#010307] text-slate-200 font-sans overflow-hidden">
       <Sidebar 
         activeView={activeView} 
         onViewChange={setActiveView} 
@@ -239,10 +205,10 @@ const App: React.FC = () => {
         isMobileOpen={isMobileSidebarOpen} 
         onMobileClose={() => setIsMobileSidebarOpen(false)} 
         onOpenAdmin={() => setIsAdminOpen(true)}
-        onExitRank={() => setSelectedRank(null)} // Botão para voltar ao seletor
+        onExitRank={() => setSelectedRank(null)}
       />
       
-      <main className="flex-1 flex flex-col min-w-0 bg-[#010307] relative min-h-screen">
+      <main className="flex-1 flex flex-col min-w-0 bg-[#010307] relative h-full overflow-hidden">
         <Header 
           onSearchChange={() => {}} 
           title={selectedRank ? `PLANO DIMENSIONAL - RANK ${selectedRank}` : 'O SISTEMA'} 
@@ -252,7 +218,7 @@ const App: React.FC = () => {
           onMenuClick={() => setIsMobileSidebarOpen(true)} 
         />
         
-        <div className="flex-1 flex flex-col w-full overflow-y-auto overflow-x-hidden md:overflow-hidden no-scrollbar">
+        <div className="flex-1 w-full overflow-hidden">
           {activeView === 'SISTEMA' && playerStatus && (
             <PlayerStatusWindow 
               status={playerStatus} 
@@ -269,7 +235,7 @@ const App: React.FC = () => {
             />
           )}
           {activeView === 'TAREFAS' && playerStatus && (
-            <div className="pt-4 md:pt-0 h-full flex flex-col">
+            <div className="h-full flex flex-col overflow-y-auto no-scrollbar">
               <TasksView 
                 playerStatus={playerStatus} 
                 onUpdatePlayer={handleUpdatePlayer} 
@@ -284,10 +250,14 @@ const App: React.FC = () => {
             </div>
           )}
           {activeView === 'DUNGEON' && playerStatus && (
-            <DungeonView playerStatus={playerStatus} setPlayerStatus={setPlayerStatus as any} addNotification={addNotification} />
+            <div className="h-full overflow-y-auto no-scrollbar">
+              <DungeonView playerStatus={playerStatus} setPlayerStatus={setPlayerStatus as any} addNotification={addNotification} />
+            </div>
           )}
           {activeView === 'TIMELINE' && playerStatus && (
-            <TimelineView milestones={playerStatus.milestones} currentRank={playerStatus.rank} />
+            <div className="h-full overflow-y-auto no-scrollbar">
+              <TimelineView milestones={playerStatus.milestones} currentRank={playerStatus.rank} />
+            </div>
           )}
         </div>
         
