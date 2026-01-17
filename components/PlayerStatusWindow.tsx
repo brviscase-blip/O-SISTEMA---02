@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   TrendingUp, Heart, Zap, Plus, Coins, Swords, Ghost, Lock,
@@ -405,20 +404,6 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                   ) : (
                     <Sword size={450} className="text-slate-900 opacity-10" />
                   )}
-
-                  <div className="absolute bottom-16 left-1/2 -translate-x-1/2 z-30">
-                     <div className="px-12 py-5 bg-black/90 backdrop-blur-3xl border-2 border-white/10 rounded-full flex items-center gap-12 shadow-[0_40px_80px_-15px_rgba(0,0,0,0.8)]">
-                        <div className="flex items-center gap-4">
-                           <div className="w-4 h-4 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_20px_#10b981]" />
-                           <span className="text-[14px] font-black text-white uppercase tracking-[0.4em]">SINCRONIA ESTÁVEL</span>
-                        </div>
-                        <div className="w-px h-10 bg-slate-800" />
-                        <div className="flex flex-col">
-                           <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest leading-none mb-1.5">AFINIDADE DE CAMPO</span>
-                           <span className="text-[13px] font-black text-blue-400 uppercase italic leading-none">PROTOCÓLO ATIVO</span>
-                        </div>
-                     </div>
-                  </div>
                </div>
 
                {/* LADO DIREITO: LORE E EVOLUÇÃO */}
