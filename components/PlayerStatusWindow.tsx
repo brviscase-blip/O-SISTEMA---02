@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { 
   TrendingUp, Heart, Zap, Plus, Coins, Swords, Ghost, Lock,
@@ -359,10 +360,10 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                            </p>
                         </div>
 
-                        {/* MATRIZ DE AFINIDADE */}
-                        <div className="grid grid-cols-2 gap-4 h-full">
+                        {/* MATRIZ DE AFINIDADE - LAYOUT HORIZONTAL */}
+                        <div className="flex flex-col gap-4">
                            <div className="bg-emerald-950/10 border-2 border-emerald-500/20 p-6 rounded-sm flex flex-col">
-                              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block mb-6 flex items-center gap-3">
+                              <span className="text-[10px] font-black text-emerald-400 uppercase tracking-widest block mb-4 flex items-center gap-3">
                                 <AdvantageIcon size={14}/> VANTAGEM TÁTICA
                               </span>
                               <div className="space-y-3 flex-1">
@@ -375,7 +376,7 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                               </div>
                            </div>
                            <div className="bg-rose-950/10 border-2 border-rose-500/20 p-6 rounded-sm flex flex-col">
-                              <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest block mb-6 flex items-center gap-3">
+                              <span className="text-[10px] font-black text-rose-400 uppercase tracking-widest block mb-4 flex items-center gap-3">
                                 <ShieldAlert size={14}/> FRAQUEZA TÁTICA
                               </span>
                               <div className="space-y-3 flex-1">
@@ -494,7 +495,7 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                </div>
                <div className="flex items-center gap-12">
                   <div className="text-right">
-                     <p className="text-[13px] font-black text-slate-500 uppercase tracking-[0.4em] italic leading-none">NEXUS ARTIFACTS LAB</p>
+                     <p className="text-[13px] font-black text-slate-500 uppercase tracking-0.4em italic leading-none">NEXUS ARTIFACTS LAB</p>
                      <p className="text-[10px] font-bold text-slate-700 uppercase tracking-[0.5em] mt-3">PROTOCOLO DE SOBERANIA V.18.2</p>
                   </div>
                   <div className="w-14 h-14 bg-blue-900/10 border-2 border-blue-500/20 rounded-sm flex items-center justify-center shadow-inner"><Shield size={28} className="text-blue-500/30" /></div>
