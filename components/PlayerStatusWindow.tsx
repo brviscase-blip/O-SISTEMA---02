@@ -382,36 +382,28 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                         <Sparkles size={16} /> MATRIZ DE EFEITOS
                      </h3>
                      <div className="flex-1 flex flex-col gap-4">
-                        <div className="p-4 bg-purple-900/10 border border-purple-500/20 rounded-sm">
+                        {/* 50% SUPERIOR: MATRIZ DE EFEITOS */}
+                        <div className="flex-1 p-4 bg-purple-900/10 border border-purple-500/20 rounded-sm overflow-y-auto no-scrollbar">
                            <span className="text-[11px] font-black text-white uppercase tracking-widest block mb-2">{selectedWeaponDetail.efeito_especial || 'NENHUM EFEITO DETECTADO'}</span>
                            <p className="text-[13px] text-slate-400 leading-relaxed italic">
                               {selectedWeaponDetail.desc_efeito || 'O Sistema não identificou modificadores anômalos para este artefato.'}
                            </p>
                         </div>
 
-                        {/* NOVO PAINEL DE RANK NA ÁREA SINALIZADA */}
-                        <div className="mt-auto pt-4 border-t border-slate-800/50 flex flex-col gap-3">
+                        {/* 50% INFERIOR: AUTENTICAÇÃO DE PATENTE (SIMPLIFICADO) */}
+                        <div className="flex-1 pt-4 border-t border-slate-800/50 flex flex-col gap-3 justify-center">
                            <div className="flex items-center justify-between">
                               <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.2em]">AUTENTICAÇÃO DE PATENTE</span>
                               <span className="text-[8px] font-black text-emerald-500/60 uppercase italic">SISTEMA VALIDADO</span>
                            </div>
-                           <div className="flex items-end gap-4 bg-black/40 p-4 rounded-sm border border-slate-800/60 group-hover:border-blue-500/30 transition-all">
-                              <div className="flex flex-col">
-                                 <span className={`text-6xl font-black italic tracking-tighter leading-none ${getRankColor(selectedWeaponDetail.rank).split(' ')[0]}`}>
-                                    {selectedWeaponDetail.rank}
-                                 </span>
-                                 <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest mt-1 ml-1">POTENCIAL BÉLICO</span>
-                              </div>
-                              <div className="flex-1 flex flex-col gap-2 pb-2">
-                                 <div className="flex justify-between text-[8px] font-black text-slate-500 uppercase">
-                                    <span>Escala de Poder</span>
-                                    <span>{((rankWeights[selectedWeaponDetail.rank] / 6) * 100).toFixed(0)}%</span>
-                                 </div>
-                                 <div className="h-1.5 w-full bg-slate-900 rounded-full overflow-hidden p-0.5 border border-slate-800">
-                                    <div 
-                                       className={`h-full rounded-full transition-all duration-1000 ${getRankColor(selectedWeaponDetail.rank).replace('text', 'bg').split(' ')[0]} shadow-[0_0_10px_rgba(0,0,0,0.5)]`} 
-                                       style={{ width: `${(rankWeights[selectedWeaponDetail.rank] / 6) * 100}%` }} 
-                                    />
+                           <div className="flex items-center justify-center bg-black/40 p-4 rounded-sm border border-slate-800/60 group-hover:border-blue-500/30 transition-all flex-1">
+                              <div className="flex flex-col items-center">
+                                 <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.4em] mb-2 italic">ARTEFATO CLASSIFICADO</span>
+                                 <div className="flex items-baseline gap-4">
+                                    <span className="text-2xl font-black text-white/30 uppercase italic tracking-widest">RANK</span>
+                                    <span className={`text-8xl font-black italic tracking-tighter leading-none ${getRankColor(selectedWeaponDetail.rank).split(' ')[0]} drop-shadow-[0_0_20px_rgba(0,0,0,0.5)] transition-all duration-700`}>
+                                       {selectedWeaponDetail.rank}
+                                    </span>
                                  </div>
                               </div>
                            </div>
@@ -438,7 +430,7 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                      </h3>
                      <div className="flex-1 bg-black/40 p-8 border border-emerald-500/10 rounded-sm relative shadow-inner overflow-y-auto custom-scrollbar">
                         <ScrollText className="absolute top-4 right-4 text-emerald-500/5" size={80} />
-                        <p className="text-[15px] text-slate-200 leading-relaxed font-medium italic opacity-90">
+                        <p className="text-[15px] text-slate-200 Poleading-relaxed font-medium italic opacity-90">
                            {selectedWeaponDetail.historia || 'As crônicas deste objeto foram perdidas no fluxo temporal do Sistema.'}
                         </p>
                      </div>
