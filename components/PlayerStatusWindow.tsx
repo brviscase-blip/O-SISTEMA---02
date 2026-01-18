@@ -202,12 +202,12 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                     </div>
                 </div>
             </div>
-            {/* EQUIPAMENTO COMPACTADO */}
+            {/* ARMADURAS COMPACTADAS */}
             <div className="row-span-3 bg-[#030712] border border-slate-800 flex flex-col rounded-sm shadow-xl min-h-0 overflow-hidden">
                 <div className="p-1.5 bg-black/40 border-b border-slate-800 flex items-center justify-between h-[30px] flex-shrink-0">
                     <div className="flex items-center gap-2">
                         <Backpack size={10} className="text-purple-400" />
-                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">EQUIPAMENTO</h3>
+                        <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">ARMADURAS</h3>
                     </div>
                     <button onClick={() => setIsEquipManagerOpen(true)} className="p-1 text-purple-400 hover:text-white transition-all"><Settings2 size={12} /></button>
                 </div>
