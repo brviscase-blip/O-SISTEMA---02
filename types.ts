@@ -28,8 +28,9 @@ export interface PlayerStatus {
   stats: PlayerStats;
   equipment: Record<string, EquipmentItem | null>;
   inventory: any[];
-  selectedCards: string[]; // IDs das cartas selecionadas para o deck de combate
+  selectedCards: string[]; 
   milestones: Milestone[];
+  completedTrials: string[]; // IDs das armas conquistadas em Trials
   isDebilitated?: boolean;
   isJobQuestActive?: boolean;
 }
@@ -40,9 +41,9 @@ export interface Habit {
   icon: string;
   startDate: string;
   reminderTime?: string;
-  days: number[]; // 0-6
-  completedDays: Record<string, boolean | number>; // 'YYYY-MM-DD': true ou valor numérico
-  targetValue: number; // 1 para check simples, > 1 para contador
+  days: number[]; 
+  completedDays: Record<string, boolean | number>; 
+  targetValue: number; 
   xpReward: number;
   streak: number;
 }
@@ -54,11 +55,11 @@ export interface Task {
   startDate: string;
   reminderTime?: string;
   isRecurring: boolean;
-  days: number[]; // Adicionado para suportar recorrência semanal (0-6)
+  days: number[]; 
   completed: boolean;
   lastCompleted?: string;
-  targetValue: number; // 1 para check simples
-  currentProgress: number; // Para tarefas diárias quantitativas
+  targetValue: number; 
+  currentProgress: number; 
   xpReward: number;
 }
 
@@ -72,7 +73,6 @@ export interface Vice {
 
 export type NotificationType = 'success' | 'warning' | 'info' | 'error' | 'alert';
 
-// --- Demand Types ---
 export type DemandStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED' | 'CANCELLED';
 export type Priority = 'HIGH' | 'MEDIUM' | 'LOW';
 export type Difficulty = 'FÁCIL' | 'MÉDIA' | 'DIFÍCIL' | 'EXTREMA';
@@ -100,7 +100,6 @@ export interface DemandItem {
   order?: number;
 }
 
-// --- File Types ---
 export type FileCategory = 'TODOS OS ATIVOS' | 'DOCUMENTOS' | 'FINANCEIROS' | 'JURÍDICOS';
 export interface FileItem {
   id: string;
@@ -110,7 +109,6 @@ export interface FileItem {
   size: string;
 }
 
-// --- Note Types ---
 export interface Note {
   id: string;
   title: string;
@@ -127,7 +125,6 @@ export interface Folder {
   color: string;
 }
 
-// --- Equipment Types ---
 export type EquipmentSlot = 'head' | 'chest' | 'hands' | 'legs' | 'feet' | 'ring';
 export interface EquipmentItem {
   id: string;
@@ -139,7 +136,6 @@ export interface EquipmentItem {
   icon: string;
 }
 
-// --- Quest & Weapon Types ---
 export interface Quest {
   id: string;
   title: string;
@@ -160,7 +156,6 @@ export interface Weapon {
   description: string;
 }
 
-// --- Milestone & Event Types ---
 export interface Milestone {
   id: string;
   title: string;

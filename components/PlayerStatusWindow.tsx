@@ -10,7 +10,8 @@ import {
   LockKeyhole, Dumbbell, Brain, TrendingUp as AdvantageIcon,
   ShieldAlert as DisadvantageIcon, ArrowRight, Eye, ShieldQuestion,
   ScrollText, BookOpen, Fingerprint, Activity as Pulse,
-  History, ShieldCheck, Swords as CombatIcon, ShieldAlert
+  History, ShieldCheck, Swords as CombatIcon, ShieldAlert,
+  Sword as SwordIcon, Trophy
 } from 'lucide-react';
 import { PlayerStatus, EquipmentItem, EquipmentSlot, PlayerStats, Habit, Task, Vice, ItemRank, Weapon } from '../types';
 import { getSupabaseClient } from '../supabaseClient';
@@ -24,6 +25,7 @@ interface Props {
   onEquipItem?: (item: EquipmentItem) => void;
   onUnequipItem?: (slot: EquipmentSlot) => void;
   onUpdatePlayer?: (updates: Partial<PlayerStatus>) => void;
+  onStartTrial?: (weapon: any) => void;
 }
 
 const getRankColor = (rank: string) => {
@@ -51,7 +53,7 @@ const rankWeights: Record<string, number> = {
   'E': 1, 'D': 2, 'C': 3, 'B': 4, 'A': 5, 'S': 6
 };
 
-const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipItem, onUpdatePlayer, onEquipItem }) => {
+const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipItem, onUpdatePlayer, onEquipItem, onStartTrial }) => {
   const [isEquipManagerOpen, setIsEquipManagerOpen] = useState(false);
   const [isWeaponManagerOpen, setIsWeaponManagerOpen] = useState(false);
   const [selectedWeaponDetail, setSelectedWeaponDetail] = useState<any | null>(null);
@@ -121,6 +123,11 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
 
   const handleWeaponEquip = (weapon: any, slot: 'primary' | 'secondary') => {
     if (status.level < (weapon.nivel_desbloqueio || 1)) return;
+    
+    // Se a arma possuir um boss_id configurado, o trial deve ter sido concluído para equipar
+    const needsTrial = Boolean(weapon.boss_id);
+    if (needsTrial && !status.completedTrials.includes(weapon.id)) return;
+
     setEquippedWeapons(prev => {
         if (prev[slot]?.id === weapon.id) return { ...prev, [slot]: null };
         const otherSlot = slot === 'primary' ? 'secondary' : 'primary';
@@ -269,12 +276,14 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                           key={w.id} 
                           weapon={w} 
                           playerLevel={status.level}
+                          completedTrials={status.completedTrials}
                           affinities={affinities}
                           isPrimary={equippedWeapons.primary?.id === w.id} 
                           isSecondary={equippedWeapons.secondary?.id === w.id} 
                           onEquipPrimary={() => handleWeaponEquip(w, 'primary')} 
                           onEquipSecondary={() => handleWeaponEquip(w, 'secondary')} 
                           onShowDetail={() => setSelectedWeaponDetail(w)}
+                          onStartTrial={() => { setIsWeaponManagerOpen(false); onStartTrial?.(w); }}
                         />
                     )) : <div className="w-full flex flex-col items-center justify-center opacity-30 py-20"><Lock size={48} className="text-slate-700 mb-4" /><p className="text-xs font-black uppercase tracking-widest">Nenhum artefato bélico autorizado</p></div>}
                   </div>
@@ -328,7 +337,7 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                            <div className="bg-blue-600/5 p-4 border border-blue-500/20 rounded-sm">
                               <p className="text-[8px] font-black text-blue-400 uppercase tracking-widest mb-1">DANO ATUAL</p>
                               <div className="flex items-center gap-2">
-                                 <span className="text-3xl font-black text-white italic tabular-nums">{selectedWeaponDetail.dano_max || selectedWeaponDetail.dano_base} <small className="text-[10px] not-italic opacity-40">ATK</small></span>
+                                 <span className="text-3xl font-black text-white italic tabular-nums">{selectedWeaponDetail.dano_base} <small className="text-[10px] not-italic opacity-40">ATK</small></span>
                                  <TrendingUp size={14} className="text-emerald-500" />
                               </div>
                            </div>
@@ -600,15 +609,20 @@ const SearchInput = ({ value, onChange, placeholder }: any) => (
     <div className="relative"><Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-600" size={16} /><input className="w-full bg-slate-900 border border-slate-800 rounded-sm pl-10 pr-4 py-3 text-xs font-bold text-white focus:outline-none focus:border-rose-500 transition-all placeholder:text-slate-700" placeholder={placeholder} value={value} onChange={e => onChange(e.target.value)} /></div>
 );
 
-const WeaponCard = ({ weapon, playerLevel, affinities, isPrimary, isSecondary, onEquipPrimary, onEquipSecondary, onShowDetail }: any) => {
-    const isLocked = playerLevel < (weapon.nivel_desbloqueio || 1);
+const WeaponCard = ({ weapon, playerLevel, completedTrials, affinities, isPrimary, isSecondary, onEquipPrimary, onEquipSecondary, onShowDetail, onStartTrial }: any) => {
+    const isLevelLocked = playerLevel < (weapon.nivel_desbloqueio || 1);
+    const isTrialCompleted = completedTrials.includes(weapon.id);
+    // Se não tem boss_id, o trial é considerado "concluído" (não necessário)
+    const needsTrial = Boolean(weapon.boss_id);
+    const canEquip = !isLevelLocked && (isTrialCompleted || !needsTrial);
+    const canChallenge = !isLevelLocked && needsTrial && !isTrialCompleted;
     
     return (
         <div 
           style={{ width: '267px', height: '375px' }}
-          className={`relative flex flex-col bg-[#030712] border-2 rounded-sm transition-all overflow-hidden flex-shrink-0 ${isLocked ? 'grayscale opacity-50 cursor-not-allowed border-slate-900' : 'hover:scale-[1.02] group'} ${isPrimary || isSecondary ? 'border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : 'border-slate-800'}`}
+          className={`relative flex flex-col bg-[#030712] border-2 rounded-sm transition-all overflow-hidden flex-shrink-0 ${isLevelLocked ? 'grayscale opacity-50 cursor-not-allowed border-slate-900' : 'hover:scale-[1.02] group'} ${isTrialCompleted && (isPrimary || isSecondary) ? 'border-rose-500 shadow-[0_0_20px_rgba(244,63,94,0.1)]' : isTrialCompleted ? 'border-emerald-500/40' : 'border-slate-800'}`}
         >
-            {isLocked && (
+            {isLevelLocked && (
                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[1px]">
                    <LockKeyhole size={24} className="text-rose-500 mb-2" />
                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Acesso Negado</span>
@@ -616,19 +630,36 @@ const WeaponCard = ({ weapon, playerLevel, affinities, isPrimary, isSecondary, o
                 </div>
             )}
 
+            {canChallenge && (
+                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[1.5px] p-6 text-center">
+                    <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center mb-3">
+                       <ShieldAlert size={24} className="text-amber-500 animate-pulse" />
+                    </div>
+                    <span className="text-[10px] font-black text-white uppercase tracking-widest mb-1">Trial Disponível</span>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase leading-tight mb-4">Vença {weapon.boss_id} para reivindicar.</p>
+                    <button 
+                      onClick={onStartTrial}
+                      className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-sm transition-all shadow-lg shadow-amber-600/20"
+                    >
+                      DESAFIAR BOSS
+                    </button>
+                 </div>
+            )}
+
             <div className="relative w-full h-[250px] bg-slate-950 border-b border-slate-800 overflow-hidden group-hover:bg-black transition-colors">
                 {weapon.img ? (
                   <img src={weapon.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={weapon.nome} />
                 ) : (
                   <div className="w-full h-full flex items-center justify-center bg-slate-900/50">
-                    <Sword size={48} className={`transition-colors opacity-20 ${isPrimary || isSecondary ? 'text-rose-400' : 'text-slate-800'}`} />
+                    <SwordIcon size={48} className={`transition-colors opacity-20 ${isPrimary || isSecondary ? 'text-rose-400' : 'text-slate-800'}`} />
                   </div>
                 )}
 
                 <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-transparent to-black/30" />
 
-                <div className="absolute top-2 left-2 z-20">
+                <div className="absolute top-2 left-2 z-20 flex gap-1.5">
                    <span className={`px-2 py-0.5 border text-[9px] font-black tracking-widest backdrop-blur-md bg-black/60 ${getRankColor(weapon.rank)}`}>RANK {weapon.rank}</span>
+                   {isTrialCompleted && needsTrial && <div className="px-2 py-0.5 bg-emerald-600/20 border border-emerald-500/40 rounded-sm text-[8px] font-black text-emerald-400 uppercase flex items-center gap-1"><Trophy size={8}/> Conquistada</div>}
                 </div>
                 
                 <div className="absolute top-2 right-2 z-20 flex gap-1.5">
@@ -661,8 +692,8 @@ const WeaponCard = ({ weapon, playerLevel, affinities, isPrimary, isSecondary, o
                        <div className="flex flex-col items-end"><span className="text-[7px] text-slate-600 font-black uppercase">Material Upgrade</span><span className="text-[8px] font-black text-slate-400 truncate max-w-[120px] text-right">{weapon.material_upgrade || '--'}</span></div>
                     </div>
                     <div className="grid grid-cols-2 gap-2">
-                        <button disabled={isLocked} onClick={onEquipPrimary} className={`py-3 text-[10px] font-black uppercase rounded-sm border transition-all ${isPrimary ? 'bg-rose-600 border-rose-400 text-white shadow-lg shadow-rose-600/20' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600'}`}>{isPrimary ? 'PRIMÁRIA' : 'EQUIPAR 1'}</button>
-                        <button disabled={isLocked} onClick={onEquipSecondary} className={`py-3 text-[10px] font-black uppercase rounded-sm border transition-all ${isSecondary ? 'bg-amber-600 border-amber-400 text-white shadow-lg shadow-amber-600/20' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600'}`}>{isSecondary ? 'SECUNDÁRIA' : 'EQUIPAR 2'}</button>
+                        <button disabled={!canEquip} onClick={onEquipPrimary} className={`py-3 text-[10px] font-black uppercase rounded-sm border transition-all ${isPrimary ? 'bg-rose-600 border-rose-400 text-white shadow-lg shadow-rose-600/20' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600'} disabled:opacity-30 disabled:grayscale`}>{isPrimary ? 'PRIMÁRIA' : 'EQUIPAR 1'}</button>
+                        <button disabled={!canEquip} onClick={onEquipSecondary} className={`py-3 text-[10px] font-black uppercase rounded-sm border transition-all ${isSecondary ? 'bg-amber-600 border-amber-400 text-white shadow-lg shadow-amber-600/20' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600'} disabled:opacity-30 disabled:grayscale`}>{isSecondary ? 'SECUNDÁRIA' : 'EQUIPAR 2'}</button>
                     </div>
                 </div>
             </div>

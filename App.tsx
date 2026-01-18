@@ -20,6 +20,7 @@ const App: React.FC = () => {
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [activeEvent, setActiveEvent] = useState<any>(null);
   const [evolutionData, setEvolutionData] = useState<any>(null);
+  const [activeTrialWeapon, setActiveTrialWeapon] = useState<any | null>(null);
   
   const [selectedRank, setSelectedRank] = useState<ItemRank | null>(null);
   const [globalLevel, setGlobalLevel] = useState<number>(() => {
@@ -55,13 +56,15 @@ const App: React.FC = () => {
       level: globalLevel, xp: 0, maxXp: 1000, rank: selectedRank, job: 'HUMANO DESPERTO', title: 'O INICIANTE',
       hp: 100, maxHp: 100, mp: 20, maxMp: 20, gold: 0, statPoints: 0,
       stats: { strength: 10, agility: 10, intelligence: 10, perception: 10, vitality: 10 },
-      equipment: {}, inventory: [], selectedCards: [], milestones: []
+      equipment: {}, inventory: [], selectedCards: [], milestones: [],
+      completedTrials: [] // Inicializa vazio
     };
     
     if (savedStatus) {
       const parsed = JSON.parse(savedStatus);
       parsed.level = globalLevel;
       parsed.rank = selectedRank;
+      if (!parsed.completedTrials) parsed.completedTrials = [];
       setPlayerStatus(parsed);
     } else {
       setPlayerStatus(defaultStatus);
@@ -191,6 +194,11 @@ const App: React.FC = () => {
     });
   };
 
+  const startWeaponTrial = (weapon: any) => {
+    setActiveTrialWeapon(weapon);
+    setActiveView('DUNGEON');
+  };
+
   if (!selectedRank) {
     return <RankSelector currentLevel={globalLevel} onSelectRank={setSelectedRank} />;
   }
@@ -232,6 +240,7 @@ const App: React.FC = () => {
               onUpdatePlayer={handleUpdatePlayer}
               onEquipItem={handleEquipItem}
               onUnequipItem={handleUnequipItem}
+              onStartTrial={startWeaponTrial}
             />
           )}
           {activeView === 'TAREFAS' && playerStatus && (
@@ -251,7 +260,13 @@ const App: React.FC = () => {
           )}
           {activeView === 'DUNGEON' && playerStatus && (
             <div className="h-full overflow-y-auto no-scrollbar">
-              <DungeonView playerStatus={playerStatus} setPlayerStatus={setPlayerStatus as any} addNotification={addNotification} />
+              <DungeonView 
+                playerStatus={playerStatus} 
+                setPlayerStatus={setPlayerStatus as any} 
+                addNotification={addNotification}
+                forcedTrialWeapon={activeTrialWeapon}
+                onTrialEnd={() => setActiveTrialWeapon(null)}
+              />
             </div>
           )}
           {activeView === 'TIMELINE' && playerStatus && (

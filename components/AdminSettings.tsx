@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Lock, Database, Sword, Trash2, Save, X, 
@@ -8,7 +9,7 @@ import {
   Brain, Zap as AgilityIcon, ArrowRight, ArrowLeftRight,
   ImageIcon, Layers, TrendingUp, LockKeyhole,
   Upload, CheckCircle2, ImageOff, ShieldAlert,
-  Target, Swords, Repeat, ScrollText
+  Target, Swords, Repeat, ScrollText, Skull
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
 
@@ -65,8 +66,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
   const initialFormState = {
     nome: '',
     rank: 'E',
-    dano_base: 0, // Dano Inicial
-    dano_max: 0,  // Dano Atual/Máximo
+    dano_base: 0,
     atributo_principal: 'FORÇA',
     efeito_especial: '',
     desc_efeito: '',
@@ -75,7 +75,9 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
     lvl_max: 10,
     material_upgrade: 'Pedra de Mana Comum',
     img: '',
-    historia: ''
+    historia: '',
+    boss_id: '',
+    desafio_concluido: false
   };
 
   const initialAffinityState = {
@@ -152,6 +154,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
   };
 
   const handleRemoveImage = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
     setFormData(prev => ({ ...prev, img: '' }));
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -163,24 +166,37 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
     if (!client || !formData.nome.trim()) return;
     setIsSaving(true);
     try {
+      const { id, created_at, ...cleanData } = formData as any;
+      
+      if ('dano_max' in cleanData) delete cleanData.dano_max;
+
       const payload = { 
-        ...formData, 
-        dano_base: Number(formData.dano_base),
-        dano_max: Number(formData.dano_max),
-        nivel_desbloqueio: Number(formData.nivel_desbloqueio),
-        lvl_min: Number(formData.lvl_min),
-        lvl_max: Number(formData.lvl_max)
+        ...cleanData, 
+        dano_base: Number(cleanData.dano_base),
+        nivel_desbloqueio: Number(cleanData.nivel_desbloqueio),
+        lvl_min: Number(cleanData.lvl_min),
+        lvl_max: Number(cleanData.lvl_max),
+        desafio_concluido: Boolean(cleanData.desafio_concluido)
       };
+
       if (editingId) {
-        await client.from('armas').update(payload).eq('id', editingId);
+        const { error } = await client.from('armas').update(payload).eq('id', editingId);
+        if (error) throw error;
       } else {
-        await client.from('armas').insert([payload]);
+        const { error } = await client.from('armas').insert([payload]);
+        if (error) throw error;
       }
+
       setFormData(initialFormState);
       setEditingId(null);
-      fetchData();
-    } catch (err) { alert('Falha tática na operação.'); }
-    finally { setIsSaving(false); }
+      await fetchData();
+      alert('Sincronização do Artefato Concluída.');
+    } catch (err: any) { 
+      console.error(err);
+      alert(`Falha tática: ${err.message || 'Erro de comunicação com o Core.'}`); 
+    } finally { 
+      setIsSaving(false); 
+    }
   };
 
   const handleSaveAffinity = async (e: React.FormEvent) => {
@@ -189,7 +205,8 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
     if (!client) return;
     setIsSaving(true);
     try {
-      const payload = { ...affinityData, multiplicador: Number(affinityData.multiplicador) };
+      const { id, created_at, ...cleanAff } = affinityData as any;
+      const payload = { ...cleanAff, multiplicador: Number(cleanAff.multiplicador) };
       if (editingAffinityId) {
         await client.from('afinidades').update(payload).eq('id', editingAffinityId);
       } else {
@@ -197,7 +214,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
       }
       setAffinityData(initialAffinityState);
       setEditingAffinityId(null);
-      fetchData();
+      await fetchData();
     } catch (err) { alert('Erro ao salvar afinidade.'); }
     finally { setIsSaving(false); }
   };
@@ -213,20 +230,22 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
   if (!isAuthenticated) {
     return (
       <div className="fixed inset-0 z-[8000] bg-[#010307] flex items-center justify-center font-sans">
-        <div className="w-full max-w-sm bg-[#030712] border border-slate-800 p-8 rounded-sm shadow-2xl">
-          <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 bg-blue-900/20 border border-blue-500 rounded-full flex items-center justify-center text-blue-500 mb-4">
-              <Lock size={32} />
+        <div className="w-full max-sm:px-4 flex justify-center">
+          <div className="w-full max-w-sm bg-[#030712] border border-slate-800 p-8 rounded-sm shadow-2xl">
+            <div className="flex flex-col items-center mb-8">
+              <div className="w-16 h-16 bg-blue-900/20 border border-blue-500 rounded-full flex items-center justify-center text-blue-500 mb-4">
+                <Lock size={32} />
+              </div>
+              <h2 className="text-sm font-black text-white uppercase tracking-[0.4em]">SISTEMA CENTRAL</h2>
+              <p className="text-[10px] text-slate-500 font-bold uppercase mt-2">NEXUS MASTER CORE</p>
             </div>
-            <h2 className="text-sm font-black text-white uppercase tracking-[0.4em]">SISTEMA CENTRAL</h2>
-            <p className="text-[10px] text-slate-500 font-bold uppercase mt-2">NEXUS MASTER CORE</p>
+            <form onSubmit={handleLogin} className="space-y-4">
+              <input type="text" placeholder="LOGIN" value={login} onChange={e => setLogin(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-sm px-4 py-3 text-xs font-black text-white outline-none focus:border-blue-500 transition-all placeholder:text-slate-700" />
+              <input type="password" placeholder="SENHA" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-sm px-4 py-3 text-xs font-black text-white outline-none focus:border-blue-500 transition-all placeholder:text-slate-700" />
+              {error && <p className="text-[9px] font-black text-rose-500 text-center uppercase tracking-widest">{error}</p>}
+              <button className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-[0.4em] transition-all rounded-sm shadow-lg shadow-blue-600/20">AUTENTICAR</button>
+            </form>
           </div>
-          <form onSubmit={handleLogin} className="space-y-4">
-            <input type="text" placeholder="LOGIN" value={login} onChange={e => setLogin(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-sm px-4 py-3 text-xs font-black text-white outline-none focus:border-blue-500 transition-all placeholder:text-slate-700" />
-            <input type="password" placeholder="SENHA" value={password} onChange={e => setPassword(e.target.value)} className="w-full bg-slate-950 border border-slate-800 rounded-sm px-4 py-3 text-xs font-black text-white outline-none focus:border-blue-500 transition-all placeholder:text-slate-700" />
-            {error && <p className="text-[9px] font-black text-rose-500 text-center uppercase tracking-widest">{error}</p>}
-            <button className="w-full py-4 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase tracking-[0.4em] transition-all rounded-sm shadow-lg shadow-blue-600/20">AUTENTICAR</button>
-          </form>
         </div>
       </div>
     );
@@ -265,7 +284,6 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
 
             {weaponSubTab === 'LISTA' ? (
               <div className="space-y-8 w-full">
-                {/* FORMULÁRIO DE REGISTRO - ATUALIZADO COM NOVOS CAMPOS */}
                 <div className="bg-[#030712] border border-slate-800 p-6 rounded-sm relative overflow-hidden animate-in slide-in-from-top-4 duration-500 w-full">
                   <div className={`absolute top-0 left-0 w-1 h-full ${editingId ? 'bg-amber-500' : 'bg-blue-600'}`} />
                   <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
@@ -275,20 +293,17 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                   
                   <form onSubmit={handleSaveWeapon} className="space-y-6">
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4">
-                      <div className="md:col-span-4">
+                      <div className="md:col-span-5">
                         <FormGroup label="NOME DA ARMA" value={formData.nome} onChange={(v:any) => setFormData({...formData, nome:v})} placeholder="Ex: Adaga de Presa de Lobo" />
                       </div>
                       <div className="md:col-span-2">
                         <FormGroup label="RANK" type="select" options={['S','A','B','C','D','E']} value={formData.rank} onChange={(v:any) => setFormData({...formData, rank:v})} />
                       </div>
-                      <div className="md:col-span-2">
+                      <div className="md:col-span-3">
                         <FormGroup label="ATRIBUTO BASE" type="select" options={['FORÇA','AGILIDADE','INTELIGÊNCIA']} value={formData.atributo_principal} onChange={(v:any) => setFormData({...formData, atributo_principal:v})} />
                       </div>
                       <div className="md:col-span-2">
                         <FormGroup label="DANO INICIAL" type="number" value={formData.dano_base} onChange={(v:any) => setFormData({...formData, dano_base:v})} />
-                      </div>
-                      <div className="md:col-span-2">
-                        <FormGroup label="DANO ATUAL (MÁX)" type="number" value={formData.dano_max} onChange={(v:any) => setFormData({...formData, dano_max:v})} />
                       </div>
                     </div>
 
@@ -308,17 +323,31 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                       
                       <div className="md:col-span-3 flex flex-col gap-1.5">
                         <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-0.5">UPLOAD VISUAL (.PNG)</label>
-                        <div onClick={() => !isUploading && fileInputRef.current?.click()} className={`w-full h-9 bg-slate-950 border border-slate-800 rounded-sm flex items-center px-4 cursor-pointer hover:border-blue-500 transition-all group overflow-hidden ${formData.img ? 'border-emerald-500/50' : ''} ${isUploading ? 'cursor-wait opacity-70' : ''}`}>
+                        <div 
+                          onClick={() => !isUploading && fileInputRef.current?.click()} 
+                          className={`w-full h-9 bg-slate-950 border border-slate-800 rounded-sm flex items-center px-4 cursor-pointer hover:border-blue-500 transition-all group overflow-hidden ${formData.img ? 'border-emerald-500/50' : ''} ${isUploading ? 'cursor-wait opacity-70' : ''}`}
+                        >
                           <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-2 truncate mr-2">
                               {isUploading ? <Loader2 size={14} className="text-blue-400 animate-spin" /> : formData.img ? <CheckCircle2 size={14} className="text-emerald-500" /> : <Upload size={14} className="text-slate-600 group-hover:text-blue-400" />}
-                              <span className={`text-[10px] font-bold truncate ${formData.img ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-300'}`}>{isUploading ? 'SINCRONIZANDO...' : formData.img ? 'UPLOAD CONCLUÍDO' : 'SELECIONAR ARQUIVO'}</span>
+                              <span className={`text-[10px] font-bold truncate ${formData.img ? 'text-emerald-400' : 'text-slate-600 group-hover:text-slate-300'}`}>
+                                {isUploading ? 'SINCRONIZANDO...' : formData.img ? 'UPLOAD CONCLUÍDO' : 'SELECIONAR ARQUIVO'}
+                              </span>
                             </div>
                             {formData.img && (
                               <div className="flex items-center gap-2 flex-shrink-0">
-                                <button onClick={handleRemoveImage} className="p-1 hover:text-rose-500 text-slate-600 transition-colors" title="Remover Imagem"><ImageOff size={14} /></button>
-                                <div className="w-6 h-6 rounded-sm border border-slate-800 overflow-hidden"><img src={formData.img} className="w-full h-full object-cover" /></div>
+                                <button 
+                                  type="button"
+                                  onClick={handleRemoveImage} 
+                                  className="p-1.5 bg-slate-900 border border-slate-800 rounded-sm hover:text-rose-500 text-slate-600 transition-all hover:border-rose-500/50 z-20" 
+                                  title="Remover Imagem"
+                                >
+                                  <ImageOff size={14} />
+                                </button>
+                                <div className="w-6 h-6 rounded-sm border border-slate-800 overflow-hidden shadow-inner">
+                                  <img src={formData.img} className="w-full h-full object-cover" />
+                                </div>
                               </div>
                             )}
                           </div>
@@ -327,11 +356,23 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-12 gap-4 border-t border-slate-800/50 pt-6">
+                      <div className="md:col-span-2">
+                         <FormGroup label="ID DO BOSS (TRIAL)" value={formData.boss_id} onChange={(v:any) => setFormData({...formData, boss_id:v})} placeholder="Ex: boss_01" />
+                      </div>
+                      <div className="md:col-span-2 flex items-center gap-2 pt-4">
+                        <label className="flex items-center gap-2 cursor-pointer group">
+                           <input type="checkbox" checked={formData.desafio_concluido} onChange={(e) => setFormData({...formData, desafio_concluido: e.target.checked})} className="hidden" />
+                           <div className={`w-4 h-4 border rounded-sm flex items-center justify-center transition-all ${formData.desafio_concluido ? 'bg-emerald-600 border-emerald-500' : 'border-slate-800 bg-slate-950 group-hover:border-slate-600'}`}>
+                              {formData.desafio_concluido && <CheckCircle2 size={10} className="text-white" />}
+                           </div>
+                           <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300">Concluído</span>
+                        </label>
+                      </div>
                       <div className="md:col-span-4">
                         <FormGroup label="EFEITO PASSIVO" value={formData.efeito_especial} onChange={(v:any) => setFormData({...formData, efeito_especial:v})} placeholder="Ex: Sangramento Crítico" />
                       </div>
-                      <div className="md:col-span-8">
-                        <FormGroup label="DESCRIÇÃO DO EFEITO" value={formData.desc_efeito} onChange={(v:any) => setFormData({...formData, desc_efeito:v})} placeholder="Explicação técnica da vantagem tática..." />
+                      <div className="md:col-span-4">
+                        <FormGroup label="DESCRIÇÃO DO EFEITO" value={formData.desc_efeito} onChange={(v:any) => setFormData({...formData, desc_efeito:v})} placeholder="Explicação técnica..." />
                       </div>
                     </div>
 
@@ -348,16 +389,15 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                   </form>
                 </div>
 
-                {/* LISTAGEM DETALHADA - ATUALIZADA COM NOVAS COLUNAS */}
                 <div className="space-y-4 w-full">
                   <div className="bg-slate-900/40 border border-slate-800/40 h-10 flex items-center px-5 rounded-sm w-full">
-                    <div className="w-[20%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-left">ARTEFATO</div>
+                    <div className="w-[15%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-left">ARTEFATO</div>
                     <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">RANK/ATTR</div>
-                    <div className="w-[15%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">DANO (INI x ATU)</div>
-                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">DESBLOQUEIO</div>
-                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">LEVEL (MÍN x MÁX)</div>
-                    <div className="w-[25%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">EFEITO PASSIVO</div>
-                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-right">AÇÕES</div>
+                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">DANO (INI)</div>
+                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">TRIAL BOSS</div>
+                    <div className="w-[10%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">LEVEL (MÍN X MÁX)</div>
+                    <div className="w-[20%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-center">EFEITO PASSIVO</div>
+                    <div className="w-[15%] text-[8px] font-black text-slate-600 uppercase tracking-widest text-right">AÇÕES</div>
                   </div>
                   <div className="flex flex-col gap-2">
                     {items.map((item) => {
@@ -366,8 +406,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                         <div key={item.id} className="bg-[#030712] border border-slate-800 h-24 flex items-center px-5 group hover:border-slate-600 transition-all relative overflow-hidden rounded-sm w-full">
                           <div className={`absolute left-0 top-0 h-full w-1 ${rankTheme.border}`} />
                           
-                          {/* Artefato */}
-                          <div className="w-[20%] flex items-center gap-3 min-w-0">
+                          <div className="w-[15%] flex items-center gap-3 min-w-0">
                             <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-sm flex items-center justify-center overflow-hidden flex-shrink-0">
                               {item.img ? <img src={item.img} className="w-full h-full object-cover" alt={item.nome} /> : <Sword size={20} className="text-slate-800" />}
                             </div>
@@ -377,7 +416,6 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                             </div>
                           </div>
 
-                          {/* Rank/Attr */}
                           <div className="w-[10%] flex flex-col items-center gap-1">
                              <span className={`text-[12px] font-black ${rankTheme.text} italic`}>{item.rank}</span>
                              <div className="flex items-center gap-1 opacity-60">
@@ -386,38 +424,30 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                              </div>
                           </div>
 
-                          {/* Dano */}
-                          <div className="w-[15%] text-center">
-                             <div className="flex items-center justify-center gap-2">
-                                <span className="text-[12px] font-black text-white">{item.dano_base}</span>
-                                <ArrowRight size={10} className="text-slate-700" />
-                                <span className="text-[12px] font-black text-emerald-400">{item.dano_max || item.dano_base}</span>
-                             </div>
-                             <span className="text-[7px] font-black text-slate-600 uppercase">Potência Bélica</span>
+                          <div className="w-[10%] text-center">
+                             <span className="text-[12px] font-black text-white tabular-nums">{item.dano_base} ATK</span>
+                             <p className="text-[7px] font-black text-slate-600 uppercase">Poder Bélico</p>
                           </div>
 
-                          {/* Desbloqueio */}
-                          <div className="w-[10%] flex justify-center">
-                             <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-900/10 border border-blue-500/20 rounded-sm">
-                                <LockKeyhole size={8} className="text-blue-500" />
-                                <span className="text-[9px] font-black text-blue-400">LV.{item.nivel_desbloqueio}</span>
+                          <div className="w-[10%] flex flex-col items-center justify-center">
+                             <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-rose-950/20 border border-rose-500/20 rounded-sm">
+                                <Skull size={8} className="text-rose-500" />
+                                <span className="text-[9px] font-black text-rose-400 uppercase">{item.boss_id || 'N/A'}</span>
                              </div>
+                             {item.desafio_concluido && <span className="text-[7px] text-emerald-500 font-bold uppercase mt-1">Selo Ativo</span>}
                           </div>
 
-                          {/* Level Mín x Máx */}
                           <div className="w-[10%] text-center">
                              <span className="text-[10px] font-black text-slate-400">{item.lvl_min} <span className="text-slate-700">/</span> {item.lvl_max}</span>
                              <p className="text-[7px] font-black text-slate-600 uppercase mt-0.5">Escala Lvl</p>
                           </div>
 
-                          {/* Efeito Passivo */}
-                          <div className="w-[25%] px-4 border-l border-r border-slate-800/50">
+                          <div className="w-[20%] px-4 border-l border-r border-slate-800/50">
                              <span className="text-[9px] font-black text-purple-400 uppercase tracking-tighter block truncate">{item.efeito_especial || 'NENHUM'}</span>
                              <p className="text-[8px] text-slate-500 italic line-clamp-2 leading-tight mt-1">{item.desc_efeito || 'Sem descrição técnica.'}</p>
                           </div>
 
-                          {/* Ações */}
-                          <div className="w-[10%] flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
+                          <div className="w-[15%] flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
                              <button onClick={() => { setEditingId(item.id); setFormData({...item}); window.scrollTo({top:0, behavior:'smooth'}); }} className="p-2 text-slate-600 hover:text-amber-500 transition-all" title="Editar"><Edit3 size={16}/></button>
                              <button onClick={() => deleteRecord('armas', item.id)} className="p-2 text-slate-600 hover:text-rose-500 transition-all" title="Excluir"><Trash2 size={16}/></button>
                           </div>
@@ -428,8 +458,8 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                 </div>
               </div>
             ) : (
-              /* ABA MATRIZ */
               <div className="space-y-8 animate-in slide-in-from-bottom-4 duration-500 w-full">
+                {/* MATRIZ DE AFINIDADE CODE ... (IDÊNTICO AO ANTERIOR) */}
                 <div className="bg-[#030712] border border-slate-800 p-6 rounded-sm relative overflow-hidden w-full">
                   <div className={`absolute top-0 left-0 w-1 h-full ${editingAffinityId ? 'bg-amber-500' : 'bg-purple-600'}`} />
                   <h3 className="text-[10px] font-black text-white uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
@@ -463,7 +493,6 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
                   </form>
                 </div>
 
-                {/* MANTRA TÁTICO VISÍVEL */}
                 <div className="bg-slate-900/40 border border-purple-500/20 p-4 rounded-sm flex items-center justify-center gap-12 overflow-hidden shadow-inner w-full">
                   <div className="flex flex-col items-center">
                     <span className="text-[7px] font-black text-slate-500 uppercase tracking-widest mb-2">ORDEM DE CONTRA-ATAQUE</span>
