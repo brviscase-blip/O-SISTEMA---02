@@ -63,8 +63,12 @@ const ArmorsNexus: React.FC = () => {
     if (!client) return;
     setIsLoading(true);
     try {
-      const { data: setsData } = await client.from('conjuntos_armadura').select('*').order('created_at', { ascending: false });
-      const { data: piecesData } = await client.from('armaduras').select('*');
+      const { data: setsData, error: setsError } = await client.from('conjuntos_armadura').select('*').order('created_at', { ascending: false });
+      if (setsError) throw setsError;
+      
+      const { data: piecesData, error: piecesError } = await client.from('armaduras').select('*');
+      if (piecesError) throw piecesError;
+
       setSets(setsData || []);
       setPieces(piecesData || []);
       
@@ -72,8 +76,12 @@ const ArmorsNexus: React.FC = () => {
         const updated = (setsData || []).find(s => s.id === selectedSet.id);
         if (updated) setSelectedSet(updated);
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro Nexus Armaduras:", err);
+      // Se o erro for cache, informa o usuário para rodar o SQL
+      if (err.message?.includes('column')) {
+        alert("ERRO DE SCHEMA: Colunas novas não detectadas. Verifique se você rodou o script SQL de ALTER TABLE no Supabase.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -88,8 +96,12 @@ const ArmorsNexus: React.FC = () => {
     setIsSaving(true);
     try {
       const payload = {
-        ...setFormData,
+        nome: setFormData.nome.trim(),
+        rank: setFormData.rank,
+        descricao_lore: setFormData.descricao_lore,
         nivel_desbloqueio: Number(setFormData.nivel_desbloqueio),
+        img: setFormData.img || null,
+        boss_id: setFormData.boss_id?.trim() || null,
         desafio_concluido: Boolean(setFormData.desafio_concluido)
       };
 
@@ -105,7 +117,8 @@ const ArmorsNexus: React.FC = () => {
       fetchData();
       alert('Conjunto Mestre Sincronizado.');
     } catch (err: any) { 
-      alert('Falha ao sincronizar conjunto: ' + (err.message || 'Erro desconhecido')); 
+      console.error("Erro ao salvar conjunto:", err);
+      alert('Falha ao sincronizar conjunto: ' + (err.message || 'Erro desconhecido. Verifique se as colunas boss_id existem no banco.')); 
     } finally { setIsSaving(false); }
   };
 
@@ -149,8 +162,7 @@ const ArmorsNexus: React.FC = () => {
               </button>
             </div>
 
-            {/* Nova linha para Trial */}
-            <div className="md:col-span-6"><FormGroup label="BOSS TRIAL ID" value={setFormData.boss_id} onChange={(v:any) => setSetFormData({...setFormData, boss_id:v})} placeholder="Ex: boss-lycan-01" /></div>
+            <div className="md:col-span-6"><FormGroup label="BOSS TRIAL ID" value={setFormData.boss_id || ''} onChange={(v:any) => setSetFormData({...setFormData, boss_id:v})} placeholder="Ex: boss-lycan-01" /></div>
             <div className="md:col-span-6 flex items-center gap-4 pt-6">
                 <label className="flex items-center gap-3 cursor-pointer group">
                   <input type="checkbox" checked={setFormData.desafio_concluido} onChange={e => setSetFormData({...setFormData, desafio_concluido: e.target.checked})} className="hidden" />
@@ -294,7 +306,7 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
       const finalValue = Number(formData.bonus_value) || 0;
 
       const payload = {
-        nome: formData.nome,
+        nome: formData.nome.trim(),
         rank: set.rank, 
         slot: slotName,
         atributo: formData.atributo,
@@ -303,7 +315,7 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
         vantagem_defensiva: formData.vantagem_defensiva,
         fraqueza_defensiva: formData.fraqueza_defensiva,
         descricao_lore: formData.descricao_lore,
-        img: formData.img,
+        img: formData.img || null,
         conjunto_id: set.id
       };
 
@@ -319,7 +331,7 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
       onSaved();
     } catch (err: any) { 
       console.error(err); 
-      alert("Erro ao forjar peça: " + (err.message || 'Verifique sua conexão ou se o slot já está preenchido.'));
+      alert("Erro ao forjar peça: " + (err.message || 'Verifique se as colunas novas existem no banco.'));
     } finally { setIsSaving(false); }
   };
 
