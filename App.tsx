@@ -9,6 +9,7 @@ import TasksView from './components/TasksView';
 import PunishmentZone from './components/PunishmentZone';
 import EvolutionModal from './components/EvolutionModal';
 import RankSelector from './components/RankSelector';
+import AdminSettings from './components/AdminSettings';
 import NotificationSystem, { Notification, NotificationType } from './components/NotificationSystem';
 import { ViewType, PlayerStatus, ItemRank } from './types';
 
@@ -33,6 +34,7 @@ const App: React.FC = () => {
   const [selectedRank, setSelectedRank] = useState<ItemRank | null>(null);
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
   const [evolutionData, setEvolutionData] = useState<any>(null);
+  const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [history, setHistory] = useState<Notification[]>([]);
 
   // Inicialização Calibrada
@@ -113,7 +115,16 @@ const App: React.FC = () => {
   
   return (
     <div className="flex h-screen w-full bg-[#010307] text-slate-200 font-sans overflow-hidden">
-      <Sidebar activeView={activeView} onViewChange={setActiveView} isCollapsed={true} onToggleCollapse={() => {}} isMobileOpen={false} onMobileClose={() => {}} onExitRank={() => setSelectedRank(null)} />
+      <Sidebar 
+        activeView={activeView} 
+        onViewChange={setActiveView} 
+        isCollapsed={true} 
+        onToggleCollapse={() => {}} 
+        isMobileOpen={false} 
+        onMobileClose={() => {}} 
+        onExitRank={() => setSelectedRank(null)}
+        onOpenAdmin={() => setIsAdminOpen(true)}
+      />
       
       <main className="flex-1 flex flex-col min-w-0 bg-[#010307] relative h-full overflow-hidden">
         <Header />
@@ -129,7 +140,16 @@ const App: React.FC = () => {
             />
           ) : (
             <>
-              {activeView === 'SISTEMA' && playerStatus && <PlayerStatusWindow status={playerStatus} onUpdateStat={(s) => playerStatus.statPoints > 0 && handleUpdatePlayer({ statPoints: playerStatus.statPoints - 1, stats: {...playerStatus.stats, [s]: playerStatus.stats[s] + 1}})} onEquipItem={() => {}} onUnequipItem={() => {}} onStartTrial={() => {}} habits={[]} tasks={[]} vices={[]} />}
+              {activeView === 'SISTEMA' && playerStatus && (
+                <PlayerStatusWindow 
+                  status={playerStatus} 
+                  onUpdateStat={(s) => playerStatus.statPoints > 0 && handleUpdatePlayer({ statPoints: playerStatus.statPoints - 1, stats: {...playerStatus.stats, [s]: playerStatus.stats[s] + 1}})} 
+                  onEquipItem={(item) => handleUpdatePlayer({ equipment: { ...playerStatus.equipment, [item.slot.toLowerCase()]: item } })} 
+                  onUnequipItem={(slot) => handleUpdatePlayer({ equipment: { ...playerStatus.equipment, [slot]: null } })} 
+                  onStartTrial={() => setActiveView('DUNGEON')} 
+                  habits={[]} tasks={[]} vices={[]} 
+                />
+              )}
               {activeView === 'TAREFAS' && playerStatus && <TasksView playerStatus={playerStatus} onUpdatePlayer={handleUpdatePlayer} addNotification={addNotification} />}
               {activeView === 'DUNGEON' && playerStatus && <DungeonView playerStatus={playerStatus} setPlayerStatus={setPlayerStatus as any} addNotification={addNotification} />}
               {activeView === 'TIMELINE' && playerStatus && <TimelineView milestones={playerStatus.milestones} currentRank={playerStatus.rank} />}
@@ -138,6 +158,7 @@ const App: React.FC = () => {
         </div>
         
         {evolutionData && <EvolutionModal type={evolutionData.type} oldValue={evolutionData.oldValue} newValue={evolutionData.newValue} rewards={evolutionData.rewards} onClose={() => setEvolutionData(null)} />}
+        {isAdminOpen && <AdminSettings onClose={() => setIsAdminOpen(false)} />}
       </main>
       <NotificationSystem notifications={history} removeNotification={(id) => setHistory(prev => prev.filter(n => n.id !== id))} />
     </div>
