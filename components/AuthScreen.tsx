@@ -24,32 +24,26 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
 
     try {
       if (isLogin) {
-        // --- FLUXO DE LOGIN INTELIGENTE ---
+        // --- FLUXO DE LOGIN INTELIGENTE (RIGOR BINÁRIO) ---
         let targetEmail = cleanUsername;
         
-        // 1. Verificar se a entrada é um e-mail ou codinome
         if (!targetEmail.includes('@')) {
-          // Se não tem '@', tratamos como Codinome e buscamos o e-mail no Nexus
-          // Usamos ilike para busca case-insensitive e garantir que encontre mesmo com caps diferentes
+          // Busca exata (Case-Sensitive) para evitar interferência de DNA
           const { data: profileData, error: profileError } = await supabase
             .from('profiles')
             .select('email')
-            .ilike('username', targetEmail)
+            .eq('username', cleanUsername) // Uso de .eq (Igualdade Estrita)
             .maybeSingle();
 
-          if (profileError) {
-            console.error("Erro de conexão com o Nexus:", profileError);
-            throw new Error('NEXUS_SYNC_ERROR');
-          }
-
+          if (profileError) throw new Error('NEXUS_SYNC_ERROR');
+          
           if (!profileData) {
-            throw new Error('DNA_NOT_FOUND');
+            throw new Error('DNA_MISMATCH');
           }
           
           targetEmail = profileData.email;
         }
 
-        // 2. Autenticação final com o e-mail determinado
         const { data, error: authError } = await supabase.auth.signInWithPassword({
           email: targetEmail,
           password,
@@ -60,29 +54,21 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
 
       } else {
         // --- FLUXO DE CADASTRO (DESPERTAR) ---
-        
-        // Validação: Codinome não pode conter @ para não interferir no login
         if (cleanUsername.includes('@')) {
-          setError('[ERRO: CODINOME NÃO PODE CONTER O CARACTERE "@"]');
+          setError('[ERRO: CODINOME NÃO PODE CONTER "@"]');
           setLoading(false);
           return;
         }
 
-        if (password.length < 6) {
-          setError('[ERRO: Chave de Acesso deve ter no mínimo 6 caracteres]');
-          setLoading(false);
-          return;
-        }
-
-        // UNIQUE CHECK - Impedir duplicidade de DNA (Case Insensitive)
+        // Verificação de unicidade estrita
         const { data: existingUser } = await supabase
           .from('profiles')
           .select('id')
-          .ilike('username', cleanUsername)
+          .eq('username', cleanUsername)
           .maybeSingle();
 
         if (existingUser) {
-          setError('[ERRO: ESTE CODINOME JÁ FOI REIVINDICADO]');
+          setError('[ERRO: ESTE DNA JÁ ESTÁ EM USO NO NEXUS]');
           setLoading(false);
           return;
         }
@@ -99,20 +85,16 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
         });
 
         if (authError) throw authError;
-
-        alert("DESPERTAR INICIADO: Verifique seu e-mail para validar sua autoridade no Sistema.");
+        alert("DESPERTAR INICIADO: Verifique seu e-mail.");
         setIsLogin(true);
       }
     } catch (err: any) {
-      console.error("Auth Exception:", err);
-      if (err.message === 'DNA_NOT_FOUND') {
-        setError('[ERRO: CODINOME NÃO LOCALIZADO NO NEXUS]');
-      } else if (err.message === 'NEXUS_SYNC_ERROR') {
-        setError('[ERRO: FALHA DE SINCRONIA COM A BASE DE DADOS]');
+      if (err.message === 'DNA_MISMATCH') {
+        setError('[ERRO: DNA NÃO CORRESPONDE AO REGISTRO]');
       } else if (err.message?.toLowerCase().includes('invalid login credentials')) {
-        setError('[ERRO: CREDENCIAIS INCORRETAS]');
+        setError('[ERRO: CHAVE DE ACESSO INCORRETA]');
       } else {
-        setError(`[ERRO: SISTEMA INSTÁVEL - ${err.message || 'Tente novamente'}]`);
+        setError(`[ERRO: ${err.message || 'SISTEMA INSTÁVEL'}]`);
       }
     } finally {
       setLoading(false);
@@ -141,9 +123,9 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
         <form onSubmit={handleAuth} className="space-y-6">
           <div className="space-y-4">
             {!isLogin && (
-              <div className="space-y-1.5 animate-in slide-in-from-top-2 duration-300">
+              <div className="space-y-1.5">
                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                  <Mail size={10} /> Registro de Correio (E-mail)
+                  <Mail size={10} /> Registro de E-mail
                 </label>
                 <input 
                   type="email" 
@@ -158,7 +140,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
 
             <div className="space-y-1.5">
               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                <Fingerprint size={10} className="text-blue-500" /> {isLogin ? 'Codinome ou E-mail' : 'Codinome de Caçador'}
+                <Fingerprint size={10} className="text-blue-500" /> {isLogin ? 'Codinome ou E-mail' : 'Codinome (Case-Sensitive)'}
               </label>
               <input 
                 type="text" 
@@ -168,6 +150,11 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
                 onChange={e => setUsername(e.target.value)}
                 className="w-full bg-slate-950 border border-slate-800 rounded-sm px-5 py-4 text-sm font-bold text-white outline-none focus:border-blue-500 transition-all placeholder:text-slate-900" 
               />
+              {!isLogin && (
+                <p className="text-[8px] text-amber-500/60 font-bold uppercase tracking-widest ml-1 mt-1 italic">
+                  * Maiúsculas e minúsculas são tratadas como diferentes.
+                </p>
+              )}
             </div>
 
             <div className="space-y-1.5">
@@ -186,7 +173,7 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
           </div>
 
           {error && (
-            <div className="bg-rose-500/10 border border-rose-500/40 p-3 rounded-sm flex items-center gap-3 animate-shake">
+            <div className="bg-rose-500/10 border border-rose-500/40 p-3 rounded-sm flex items-center gap-3">
               <ShieldAlert size={16} className="text-rose-500 shrink-0" />
               <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest leading-tight">{error}</p>
             </div>
@@ -208,7 +195,6 @@ const AuthScreen: React.FC<AuthScreenProps> = ({ onAuthSuccess }) => {
               setIsLogin(!isLogin);
               setError(null);
               setUsername('');
-              setEmail('');
             }}
             className="text-[10px] font-black text-slate-500 hover:text-blue-400 uppercase tracking-widest transition-colors italic"
           >
