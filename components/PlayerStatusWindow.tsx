@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Settings, BarChart3 } from 'lucide-react';
+import { Activity, Settings, BarChart3, Package, Ghost, FlaskConical, Crown } from 'lucide-react';
 import { PlayerStatus, EquipmentItem } from '../types';
 import AttributeCard from './AttributeCard';
 import ArmorCard from './ArmorCard';
@@ -55,9 +55,9 @@ const PlayerStatusWindow: React.FC<Props> = ({
   const xpPercent = (status.xp / status.maxXp) * 100;
 
   return (
-    <div className="h-full w-full flex flex-col gap-2 p-2 bg-[#010307] select-none">
-      {/* MONITOR VITAL GLOBAL */}
-      <div className="bg-[#030712] border border-slate-800 p-4 rounded-sm shadow-2xl flex flex-col gap-4 relative overflow-hidden">
+    <div className="h-full w-full flex flex-col gap-2 p-2 bg-[#010307] select-none overflow-hidden">
+      {/* MONITOR VITAL GLOBAL (HEADER) */}
+      <div className="flex-shrink-0 bg-[#030712] border border-slate-800 p-4 rounded-sm shadow-2xl flex flex-col gap-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none">
           <Activity size={80} className="text-slate-800" />
         </div>
@@ -82,7 +82,6 @@ const PlayerStatusWindow: React.FC<Props> = ({
           </div>
 
           <div className="flex items-center gap-10">
-             {/* Monitor de HP Global */}
              <div className="flex flex-col items-end min-w-[180px]">
                 <div className="flex items-center gap-2 mb-1">
                    <Activity size={12} className="text-rose-600 animate-pulse" />
@@ -104,8 +103,7 @@ const PlayerStatusWindow: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* Barra de XP Linear */}
-        <div className="space-y-1.5 pt-2">
+        <div className="space-y-1.5 pt-2 border-t border-slate-800/50">
           <div className="flex justify-between items-end text-[8px] font-black uppercase tracking-[0.4em] text-slate-600 px-1">
              <span className="flex items-center gap-2 italic">Sincronização de Dados Biométricos</span>
              <span className="text-blue-500">{status.xp} / {status.maxXp} XP</span>
@@ -116,27 +114,62 @@ const PlayerStatusWindow: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* Grid de Atributos e Equipamentos */}
+      {/* NOVO DASHBOARD DE MATRIZ (12 COLUNAS) */}
       <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
-        <div className="col-span-3 flex flex-col gap-2 min-h-0">
-           <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
-           <ArmorCard equipment={status.equipment} onOpenManagement={() => setIsArmorModalOpen(true)} />
-           <ArsenalCard equipped={equippedWeapons} onOpenManagement={() => setIsWeaponModalOpen(true)} />
-        </div>
         
-        <div className="col-span-9 bg-[#030712] border border-slate-800 rounded-sm p-4 relative overflow-hidden">
-            <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-            <div className="h-full flex flex-col items-center justify-center text-center opacity-40">
-               <BarChart3 size={64} className="text-slate-800 mb-6" />
-               <h3 className="text-lg font-black uppercase tracking-[0.5em]">Matriz de Sincronia</h3>
-               <p className="text-[10px] font-bold text-slate-600 uppercase mt-4 tracking-widest">
-                  O SISTEMA ESTÁ MONITORANDO CADA AÇÃO NO MUNDO REAL. <br/>
-                  FALHAS REPETIDAS RESULTARÃO EM EXPURGO DE DADOS.
-               </p>
+        {/* BLOCO OPERACIONAL (COLUNAS 1-8) */}
+        <div className="col-span-8 grid grid-rows-[auto_1fr_1.2fr] gap-2 min-h-0">
+          
+          {/* TOPO: Atributos Expandidos */}
+          <div className="row-span-1">
+            <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
+          </div>
+
+          {/* MEIO: Armaduras e Arsenal (Lado a Lado) */}
+          <div className="grid grid-cols-2 gap-2 min-h-0">
+            <ArmorCard equipment={status.equipment} onOpenManagement={() => setIsArmorModalOpen(true)} />
+            <ArsenalCard equipped={equippedWeapons} onOpenManagement={() => setIsWeaponModalOpen(true)} />
+          </div>
+
+          {/* BASE: Complexo de Inventários */}
+          <div className="grid grid-cols-2 gap-2 min-h-0">
+            {/* Inventário Geral (10 slots - 2x5) */}
+            <InventorySection title="Inventário Geral" slots={10} gridCols="grid-cols-5" icon={<Package size={12}/>} />
+            
+            {/* Stack de Consumíveis e Relíquias */}
+            <div className="grid grid-rows-2 gap-2">
+              <InventorySection title="Consumíveis" slots={4} gridCols="grid-cols-2" icon={<FlaskConical size={12}/>} small />
+              <InventorySection title="Relíquias" slots={4} gridCols="grid-cols-2" icon={<Crown size={12}/>} small />
             </div>
+          </div>
+        </div>
+
+        {/* BLOCO DE COMANDO (COLUNAS 9-12) */}
+        <div className="col-span-4 grid grid-rows-[1.5fr_1fr] gap-2 min-h-0">
+          
+          {/* PLACEHOLDER SUPERIOR */}
+          <div className="bg-[#030712] border border-slate-800 rounded-sm p-4 flex flex-col items-center justify-center text-center opacity-40 relative overflow-hidden">
+             <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+             <BarChart3 size={48} className="text-slate-800 mb-4" />
+             <h3 className="text-sm font-black uppercase tracking-[0.4em]">Visualizer_Core</h3>
+             <p className="text-[8px] font-bold text-slate-600 uppercase mt-2 tracking-widest italic">Aguardando Input Biométrico</p>
+          </div>
+
+          {/* EXÉRCITO DAS SOMBRAS */}
+          <div className="bg-[#030712] border border-slate-800 rounded-sm p-4 flex flex-col min-h-0">
+            <div className="flex items-center gap-2 mb-4 border-b border-slate-800 pb-2">
+               <Ghost size={14} className="text-blue-500" />
+               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Exército das Sombras</h3>
+            </div>
+            <div className="flex-1 flex flex-col items-center justify-center opacity-20 text-center">
+               <Ghost size={32} className="text-slate-700 mb-2" />
+               <span className="text-[9px] font-black uppercase tracking-widest italic">Nenhuma Sombra Sobjugada</span>
+            </div>
+          </div>
         </div>
       </div>
 
+      {/* MODALS */}
       <AccountSettingsModal 
         isOpen={isAccountModalOpen}
         onClose={() => setIsAccountModalOpen(false)}
@@ -145,7 +178,6 @@ const PlayerStatusWindow: React.FC<Props> = ({
         onSignOut={onSignOut}
         addNotification={addNotification}
       />
-
       <WeaponArsenalModal 
         isOpen={isWeaponModalOpen} 
         onClose={() => setIsWeaponModalOpen(false)} 
@@ -155,7 +187,6 @@ const PlayerStatusWindow: React.FC<Props> = ({
         onShowDetail={setSelectedWeaponDetail} 
         onStartTrial={onStartTrial} 
       />
-
       <ArmorModulationModal 
         isOpen={isArmorModalOpen} 
         onClose={() => setIsArmorModalOpen(false)} 
@@ -164,7 +195,6 @@ const PlayerStatusWindow: React.FC<Props> = ({
         onUnequip={onUnequipItem} 
         onStartTrial={onStartTrial} 
       />
-
       {selectedWeaponDetail && (
         <WeaponDetailModal 
           weapon={selectedWeaponDetail} 
@@ -174,6 +204,22 @@ const PlayerStatusWindow: React.FC<Props> = ({
     </div>
   );
 };
+
+const InventorySection = ({ title, slots, gridCols, icon, small = false }: any) => (
+  <div className="bg-[#030712] border border-slate-800 rounded-sm flex flex-col p-3 min-h-0">
+    <div className={`flex items-center gap-2 mb-2 border-b border-slate-800/50 ${small ? 'pb-1' : 'pb-2'}`}>
+      <span className="text-blue-500">{icon}</span>
+      <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">{title}</h3>
+    </div>
+    <div className={`flex-1 grid ${gridCols} gap-1.5 min-h-0`}>
+      {Array.from({ length: slots }).map((_, i) => (
+        <div key={i} className="aspect-square bg-slate-950/50 border border-slate-800/40 rounded-sm flex items-center justify-center group hover:border-blue-500/30 transition-colors">
+          <div className="w-1 h-1 rounded-full bg-slate-900 group-hover:bg-blue-900 transition-colors" />
+        </div>
+      ))}
+    </div>
+  </div>
+);
 
 const StatBox = ({ label, value, color }: any) => (
   <div className="flex flex-col items-end leading-none">
