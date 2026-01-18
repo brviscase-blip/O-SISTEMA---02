@@ -22,19 +22,29 @@ const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
   if (!isOpen) return null;
 
   const handleUpdateUsername = async () => {
-    if (!newUsername.trim() || newUsername === profile.username) return;
+    const cleanUsername = newUsername.trim();
+    if (!cleanUsername || cleanUsername === profile.username) return;
+    
+    // Validação de caractere @
+    if (cleanUsername.includes('@')) {
+      addNotification("[ERRO: CODINOME NÃO PODE CONTER '@']", "error");
+      return;
+    }
+
     setLoading(true);
     
     try {
-      // 1. UNIQUE CHECK - Verificando se o DNA (username) já existe
+      // 1. UNIQUE CHECK - Verificando se o DNA (username) já existe (Case Insensitive)
+      // Buscamos qualquer usuário que tenha esse nome, mas que NÃO seja o atual
       const { data: existingUser, error: checkError } = await supabase
         .from('profiles')
         .select('id')
-        .eq('username', newUsername.trim())
+        .ilike('username', cleanUsername)
+        .neq('id', profile.id)
         .maybeSingle();
 
       if (existingUser) {
-        addNotification("[ERRO: DNA JÁ REGISTRADO NO NEXUS]", "error");
+        addNotification("[ERRO: ESTE DNA JÁ PERTENCE A OUTRO CAÇADOR]", "error");
         setLoading(false);
         return;
       }
@@ -42,12 +52,12 @@ const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
       // 2. UPDATE - Sincronizando nova identidade
       const { error: updateError } = await supabase
         .from('profiles')
-        .update({ username: newUsername.trim() })
+        .update({ username: cleanUsername })
         .eq('id', profile.id);
 
       if (updateError) throw updateError;
 
-      onUpdateProfile({ ...profile, username: newUsername.trim() });
+      onUpdateProfile({ ...profile, username: cleanUsername });
       addNotification("[SISTEMA: DNA ATUALIZADO COM SUCESSO]", "success");
     } catch (err) {
       console.error(err);
@@ -106,12 +116,13 @@ const AccountSettingsModal: React.FC<AccountSettingsModalProps> = ({
               />
               <button 
                 onClick={handleUpdateUsername}
-                disabled={loading || newUsername === profile?.username}
+                disabled={loading || newUsername.trim() === profile?.username}
                 className="px-4 bg-blue-600 hover:bg-blue-500 disabled:opacity-30 text-white rounded-sm transition-all"
               >
                 {loading ? <Loader2 size={16} className="animate-spin" /> : <ShieldCheck size={16} />}
               </button>
             </div>
+            <p className="text-[8px] text-slate-600 font-bold uppercase tracking-widest ml-1">Aviso: O Codinome não pode conter o símbolo "@".</p>
           </div>
 
           {/* Seção Senha */}
