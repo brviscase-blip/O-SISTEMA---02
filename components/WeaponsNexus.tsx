@@ -4,7 +4,7 @@ import {
   Sword, Trash2, Save, Loader2, Plus, Edit3, 
   Zap, Dumbbell, Brain, Target, ArrowRight,
   Upload, CheckCircle2, ImageOff, Repeat,
-  ChevronDown, ArrowLeftRight, Skull, ShieldAlert
+  ChevronDown, ArrowLeftRight, Skull, ShieldAlert, X
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
 
@@ -66,7 +66,7 @@ const WeaponsNexus: React.FC = () => {
     setIsLoading(true);
     try {
       const { data: weapons } = await client.from('armas').select('*');
-      const { data: affs } = await client.from('afinidades').select('*').order('created_at', { ascending: false });
+      const { data: affs } = await client.from('armas_afinidades').select('*').order('created_at', { ascending: false });
       
       const sorted = (weapons || []).sort((a, b) => (rankWeights[b.rank] || 0) - (rankWeights[a.rank] || 0));
       setItems(sorted);
@@ -123,8 +123,8 @@ const WeaponsNexus: React.FC = () => {
       setFormData(initialFormState);
       setEditingId(null);
       fetchData();
-      alert('Arma Sincronizada.');
-    } catch (err) { alert('Falha tática.'); }
+      alert('Sincronização Concluída.');
+    } catch (err) { alert('Erro na recalibração.'); }
     finally { setIsSaving(false); }
   };
 
@@ -137,23 +137,40 @@ const WeaponsNexus: React.FC = () => {
       const { id, created_at, ...cleanAff } = affinityData as any;
       const payload = { ...cleanAff, multiplicador: Number(cleanAff.multiplicador) };
       if (editingAffinityId) {
-        await client.from('afinidades').update(payload).eq('id', editingAffinityId);
+        await client.from('armas_afinidades').update(payload).eq('id', editingAffinityId);
       } else {
-        await client.from('afinidades').insert([payload]);
+        await client.from('armas_afinidades').insert([payload]);
       }
       setAffinityData(initialAffinityState);
       setEditingAffinityId(null);
       fetchData();
+      alert('Matriz Atualizada.');
     } catch (err) { alert('Erro na matriz.'); }
     finally { setIsSaving(false); }
   };
 
   const deleteRecord = async (table: string, id: string) => {
-    if (!window.confirm("Confirmar expurgo?")) return;
+    if (!window.confirm("CONFIRMAR EXPURGO DEFINITIVO? ESTA AÇÃO NÃO PODE SER DESFEITA.")) return;
     const client = getSupabaseClient();
     if (!client) return;
-    await client.from(table).delete().eq('id', id);
-    fetchData();
+    try {
+      const { error } = await client.from(table).delete().eq('id', id);
+      if (error) throw error;
+      fetchData();
+      alert("Registro Expurmado.");
+    } catch (err) {
+      alert("Erro ao apagar registro.");
+    }
+  };
+
+  const cancelEdit = () => {
+    setFormData(initialFormState);
+    setEditingId(null);
+  };
+
+  const cancelAffinityEdit = () => {
+    setAffinityData(initialAffinityState);
+    setEditingAffinityId(null);
   };
 
   return (
@@ -222,10 +239,15 @@ const WeaponsNexus: React.FC = () => {
               {/* LINHA 4: LORE / HISTÓRIA */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 border-t border-slate-800/50 pt-8">
                 <div className="md:col-span-10"><FormGroup label="REGISTRO DE MEMÓRIA (LORE)" type="textarea" value={formData.historia} onChange={(v:any) => setFormData({...formData, historia:v})} /></div>
-                <div className="md:col-span-2 flex items-end">
-                   <button disabled={isSaving || isUploading} className={`w-full h-[104px] ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'} text-white text-[11px] font-black uppercase flex flex-col items-center justify-center gap-3 transition-all rounded-sm shadow-xl active:scale-95`}>
+                <div className="md:col-span-2 flex flex-col gap-2 items-end">
+                   <button disabled={isSaving || isUploading} className={`w-full h-[104px] ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'} text-white text-[11px] font-black uppercase tracking-widest flex flex-col items-center justify-center gap-3 transition-all rounded-sm shadow-xl active:scale-95`}>
                      {isSaving ? <Loader2 className="animate-spin" size={24}/> : <Save size={24}/>} {editingId ? 'ATUALIZAR' : 'REGISTRAR'}
                    </button>
+                   {editingId && (
+                     <button type="button" onClick={cancelEdit} className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white text-[9px] font-black uppercase tracking-widest transition-all rounded-sm">
+                        CANCELAR
+                     </button>
+                   )}
                 </div>
               </div>
             </form>
@@ -240,7 +262,7 @@ const WeaponsNexus: React.FC = () => {
                 <div className="w-[10%] text-center">TRIAL BOSS</div>
                 <div className="w-[15%] text-center">LEVEL (MÍN X MÁX)</div>
                 <div className="w-[20%]">EFEITO PASSIVO</div>
-                <div className="w-[10%] text-right">AÇÕES</div>
+                <div className="w-[10%] text-right pr-4">AÇÕES</div>
              </div>
 
              <div className="flex flex-col gap-3">
@@ -291,9 +313,25 @@ const WeaponsNexus: React.FC = () => {
                            <p className="text-[9px] text-slate-500 italic line-clamp-2 leading-relaxed">{item.desc_efeito || 'Sem descrição.'}</p>
                         </div>
 
-                        <div className="w-[10%] flex items-center justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all translate-x-4 group-hover:translate-x-0">
-                           <button onClick={() => { setEditingId(item.id); setFormData({...item}); window.scrollTo({top:0, behavior:'smooth'}); }} className="p-3 bg-slate-900 border border-slate-800 rounded-sm text-slate-500 hover:text-amber-500 transition-all"><Edit3 size={18}/></button>
-                           <button onClick={() => deleteRecord('armas', item.id)} className="p-3 bg-slate-900 border border-slate-800 rounded-sm text-slate-500 hover:text-rose-500 transition-all"><Trash2 size={18}/></button>
+                        <div className="w-[10%] flex items-center justify-end gap-2 pr-2">
+                           <button 
+                             onClick={() => { 
+                               setEditingId(item.id); 
+                               setFormData({...item}); 
+                               window.scrollTo({top: 0, behavior: 'smooth'}); 
+                             }} 
+                             className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-amber-500 hover:border-amber-500/40 transition-all"
+                             title="Editar Arma"
+                           >
+                             <Edit3 size={16}/>
+                           </button>
+                           <button 
+                             onClick={() => deleteRecord('armas', item.id)} 
+                             className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-rose-500 hover:border-rose-500/40 transition-all"
+                             title="Apagar Arma"
+                           >
+                             <Trash2 size={16}/>
+                           </button>
                         </div>
                       </div>
                     );
@@ -315,8 +353,11 @@ const WeaponsNexus: React.FC = () => {
                   <div className="md:col-span-3"><FormGroup label="DEFENSOR" type="select" options={['FORÇA','AGILIDADE','INTELIGÊNCIA']} value={affinityData.defensor} onChange={(v:any) => setAffinityData({...affinityData, defensor:v})} /></div>
                   <div className="md:col-span-2"><FormGroup label="VANTAGEM" type="select" options={['FORTE','FRACO','NEUTRO']} value={affinityData.vantagem} onChange={(v:any) => setAffinityData({...affinityData, vantagem:v})} /></div>
                   <div className="md:col-span-2"><FormGroup label="MULTIPLICADOR" type="number" value={affinityData.multiplicador} onChange={(v:any) => setAffinityData({...affinityData, multiplicador:v})} /></div>
-                  <div className="md:col-span-2 flex items-end">
+                  <div className="md:col-span-2 flex flex-col gap-2 items-end">
                      <button disabled={isSaving} className="w-full h-10 bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-black uppercase rounded-sm shadow-xl active:scale-95 disabled:opacity-50">SALVAR</button>
+                     {editingAffinityId && (
+                       <button type="button" onClick={cancelAffinityEdit} className="w-full py-1.5 bg-slate-800 text-[8px] font-black uppercase text-slate-500 rounded-sm">CANCELAR</button>
+                     )}
                   </div>
                </div>
                <FormGroup label="LORE TÁTICO" type="textarea" value={affinityData.lore} onChange={(v:any) => setAffinityData({...affinityData, lore:v})} placeholder="Ex: A força bruta esmaga a fragilidade mágica..." />
@@ -339,9 +380,25 @@ const WeaponsNexus: React.FC = () => {
                    <div className="w-[25%] px-8 border-l border-r border-slate-800/30">
                       <p className="text-[10px] text-slate-500 italic line-clamp-2 leading-tight">{aff.lore || 'Sem lore técnico.'}</p>
                    </div>
-                   <div className="w-[15%] flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <button onClick={() => {setEditingAffinityId(aff.id); setAffinityData({...aff}); window.scrollTo({top:0, behavior:'smooth'});}} className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-500 hover:text-amber-500 transition-all"><Edit3 size={16}/></button>
-                      <button onClick={() => deleteRecord('afinidades', aff.id)} className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-500 hover:text-rose-500 transition-all"><Trash2 size={16}/></button>
+                   <div className="w-[15%] flex justify-end gap-2">
+                      <button 
+                        onClick={() => {
+                          setEditingAffinityId(aff.id); 
+                          setAffinityData({...aff}); 
+                          window.scrollTo({top:0, behavior:'smooth'});
+                        }} 
+                        className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-amber-500 transition-all"
+                        title="Editar Afinidade"
+                      >
+                        <Edit3 size={16}/>
+                      </button>
+                      <button 
+                        onClick={() => deleteRecord('armas_afinidades', aff.id)} 
+                        className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-rose-500 transition-all"
+                        title="Apagar Afinidade"
+                      >
+                        <Trash2 size={16}/>
+                      </button>
                    </div>
                 </div>
              ))}

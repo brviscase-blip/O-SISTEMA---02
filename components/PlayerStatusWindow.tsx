@@ -85,7 +85,7 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
     setIsLoadingWeapons(true);
     try {
       const { data: weaponData } = await client.from('armas').select('*');
-      const { data: affinityData } = await client.from('afinidades').select('*');
+      const { data: affinityData } = await client.from('armas_afinidades').select('*');
       
       if (weaponData) {
         const playerRankWeight = rankWeights[status.rank] || 0;
