@@ -1,24 +1,47 @@
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Activity, Coins, BarChart3 } from 'lucide-react';
-import { PlayerStatus, PlayerStats } from '../types';
+import { PlayerStatus, EquipmentItem } from '../types';
 import AttributeCard from './AttributeCard';
 import ArmorCard from './ArmorCard';
 import ArsenalCard from './ArsenalCard';
+import { WeaponArsenalModal, WeaponDetailModal } from './ArsenalModals';
+import { ArmorModulationModal } from './ArmorModals';
 
 interface Props {
   status: PlayerStatus;
   onUpdateStat: (stat: keyof PlayerStatus['stats']) => void;
   onUpdatePlayer?: (updates: Partial<PlayerStatus>) => void;
-  onEquipItem: any;
-  onUnequipItem: any;
-  onStartTrial: any;
+  onEquipItem: (item: EquipmentItem) => void;
+  onUnequipItem: (slot: string) => void;
+  onStartTrial: (item: any) => void;
   habits: any[];
   tasks: any[];
   vices: any[];
 }
 
-const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat }) => {
+const PlayerStatusWindow: React.FC<Props> = ({ 
+  status, 
+  onUpdateStat, 
+  onEquipItem, 
+  onUnequipItem, 
+  onStartTrial,
+  onUpdatePlayer 
+}) => {
+  const [isArmorModalOpen, setIsArmorModalOpen] = useState(false);
+  const [isWeaponModalOpen, setIsWeaponModalOpen] = useState(false);
+  const [selectedWeaponDetail, setSelectedWeaponDetail] = useState<any | null>(null);
+
+  // Estado local para armas equipadas (Arsenal) persistido
+  const [equippedWeapons, setEquippedWeapons] = useState<{ primary: any | null, secondary: any | null }>(() => {
+    const saved = localStorage.getItem('nexus_equipped_weapons');
+    return saved ? JSON.parse(saved) : { primary: null, secondary: null };
+  });
+
+  useEffect(() => {
+    localStorage.setItem('nexus_equipped_weapons', JSON.stringify(equippedWeapons));
+  }, [equippedWeapons]);
+
   const hpPercent = (status.hp / status.maxHp) * 100;
   const xpPercent = (status.xp / status.maxXp) * 100;
 
@@ -74,8 +97,14 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat }) => {
       <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
         <div className="col-span-3 flex flex-col gap-2 min-h-0">
            <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
-           <ArmorCard equipment={status.equipment as any} onOpenManagement={() => {}} />
-           <ArsenalCard equipped={{primary: null, secondary: null}} onOpenManagement={() => {}} />
+           <ArmorCard 
+             equipment={status.equipment} 
+             onOpenManagement={() => setIsArmorModalOpen(true)} 
+           />
+           <ArsenalCard 
+             equipped={equippedWeapons} 
+             onOpenManagement={() => setIsWeaponModalOpen(true)} 
+           />
         </div>
         
         <div className="col-span-9 bg-[#030712] border border-slate-800 rounded-sm p-4 relative overflow-hidden">
@@ -90,6 +119,33 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat }) => {
             </div>
         </div>
       </div>
+
+      {/* Modais de Gerenciamento */}
+      <WeaponArsenalModal 
+        isOpen={isWeaponModalOpen} 
+        onClose={() => setIsWeaponModalOpen(false)} 
+        status={status} 
+        equipped={equippedWeapons} 
+        setEquipped={setEquippedWeapons} 
+        onShowDetail={setSelectedWeaponDetail} 
+        onStartTrial={onStartTrial} 
+      />
+
+      <ArmorModulationModal 
+        isOpen={isArmorModalOpen} 
+        onClose={() => setIsArmorModalOpen(false)} 
+        status={status} 
+        onEquip={onEquipItem} 
+        onUnequip={onUnequipItem} 
+        onStartTrial={onStartTrial} 
+      />
+
+      {selectedWeaponDetail && (
+        <WeaponDetailModal 
+          weapon={selectedWeaponDetail} 
+          onClose={() => setSelectedWeaponDetail(null)} 
+        />
+      )}
     </div>
   );
 };

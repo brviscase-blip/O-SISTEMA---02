@@ -269,15 +269,17 @@ const TagSelector: React.FC<TagSelectorProps> = ({ label, value, onChange, optio
 };
 
 const DemandModal: React.FC<DemandModalProps> = ({ isOpen, onClose, onSave, editingDemand, existingOptions }) => {
+  // Added 'order' property to fix type mismatch with Omit<DemandItem, 'id'>
   const [formData, setFormData] = useState<Omit<DemandItem, 'id'>>({
-    title: '', requester: '', responsible: '', contract: '', startDate: '', dueDate: '', status: 'OPEN', priority: 'MEDIUM', difficulty: 'MÉDIA', pomodoros: 0, description: '', subActivities: []
+    title: '', requester: '', responsible: '', contract: '', startDate: '', dueDate: '', status: 'OPEN', priority: 'MEDIUM', difficulty: 'MÉDIA', pomodoros: 0, description: '', subActivities: [], order: 0
   });
 
   useEffect(() => {
     if (editingDemand) {
       setFormData({ ...editingDemand });
     } else {
-      setFormData({ title: '', requester: '', responsible: '', contract: '', startDate: '', dueDate: '', status: 'OPEN', priority: 'MEDIUM', difficulty: 'MÉDIA', pomodoros: 0, description: '', subActivities: [] });
+      // Added 'order' property to initial state reset
+      setFormData({ title: '', requester: '', responsible: '', contract: '', startDate: '', dueDate: '', status: 'OPEN', priority: 'MEDIUM', difficulty: 'MÉDIA', pomodoros: 0, description: '', subActivities: [], order: 0 });
     }
   }, [editingDemand, isOpen]);
 
