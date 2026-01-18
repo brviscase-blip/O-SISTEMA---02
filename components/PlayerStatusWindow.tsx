@@ -114,11 +114,11 @@ const PlayerStatusWindow: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* DASHBOARD PRINCIPAL - ESTRUTURA DE PROPORÇÃO 50/50 */}
+      {/* DASHBOARD PRINCIPAL */}
       <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
         
-        {/* BLOCO SUPERIOR (GRUPO AZUL) - 50% DA ALTURA */}
-        <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
+        {/* BLOCO SUPERIOR (GRUPO AZUL) */}
+        <div className="flex-[0.55] grid grid-cols-2 gap-2 min-h-0">
           
           {/* ESQUERDA (AZUL): ATRIBUTOS + INVENTÁRIOS */}
           <div className="flex flex-col gap-2 min-h-0">
@@ -126,13 +126,15 @@ const PlayerStatusWindow: React.FC<Props> = ({
                <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
              </div>
              <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
-                <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
+                {/* INVENTÁRIO GERAL: EXATOS 10 SLOTS (5x2) PREENCHENDO O CARD */}
+                <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5 grid-rows-2" icon={<Package size={10}/>} color="blue" />
+                
                 <div className="flex flex-col gap-2 min-h-0">
                   <div className="flex-1 min-h-0">
-                    <InventorySection title="RELÍQUIAS" slots={5} gridCols="grid-cols-5" icon={<Crown size={10}/>} color="amber" />
+                    <InventorySection title="RELÍQUIAS" slots={5} gridCols="grid-cols-5 grid-rows-1" icon={<Crown size={10}/>} color="amber" />
                   </div>
                   <div className="flex-1 min-h-0">
-                    <InventorySection title="CONSUMÍVEIS" slots={5} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
+                    <InventorySection title="CONSUMÍVEIS" slots={5} gridCols="grid-cols-5 grid-rows-1" icon={<FlaskConical size={10}/>} color="emerald" />
                   </div>
                 </div>
              </div>
@@ -162,8 +164,8 @@ const PlayerStatusWindow: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* BLOCO INFERIOR (GRUPO VERMELHO) - 50% DA ALTURA */}
-        <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
+        {/* BLOCO INFERIOR (GRUPO VERMELHO) */}
+        <div className="flex-[0.45] grid grid-cols-2 gap-2 min-h-0">
           
           {/* ESQUERDA (VERMELHO): ARMADURAS + ARSENAL */}
           <div className="grid grid-cols-2 gap-2 min-h-0">
@@ -171,9 +173,9 @@ const PlayerStatusWindow: React.FC<Props> = ({
             <ArsenalCard equipped={equippedWeapons} onOpenManagement={() => setIsWeaponModalOpen(true)} />
           </div>
 
-          {/* DIREITA (VERMELHO): EXÉRCITO DAS SOMBRAS */}
+          {/* DIREITA (VERMELHO): EXÉRCITO DAS SOMBRAS (5x2 também para equilíbrio visual) */}
           <div className="min-h-0">
-            <InventorySection title="EXÉRCITO DAS SOMBRAS" slots={10} gridCols="grid-cols-5" icon={<Ghost size={10}/>} color="purple" />
+            <InventorySection title="EXÉRCITO DAS SOMBRAS" slots={10} gridCols="grid-cols-5 grid-rows-2" icon={<Ghost size={10}/>} color="purple" />
           </div>
         </div>
 
@@ -217,7 +219,7 @@ const PlayerStatusWindow: React.FC<Props> = ({
           0% { transform: translateY(0); opacity: 0; }
           10% { opacity: 1; }
           90% { opacity: 1; }
-          100% { transform: translateY(500px); opacity: 0; }
+          100% { transform: translateY(400px); opacity: 0; }
         }
       `}</style>
     </div>
@@ -244,11 +246,11 @@ const InventorySection = ({ title, slots, gridCols, icon, color }: any) => {
         </button>
       </div>
 
-      <div className={`p-1 flex-1 grid ${gridCols} gap-1 min-h-0 overflow-y-auto custom-scrollbar content-start`}>
+      <div className={`p-1 flex-1 grid ${gridCols} gap-1 min-h-0 overflow-hidden`}>
         {Array.from({ length: slots }).map((_, i) => (
           <div 
             key={i} 
-            className="aspect-square bg-slate-950 border border-slate-800/40 rounded-sm flex items-center justify-center group hover:border-blue-500/30 transition-colors relative overflow-hidden"
+            className="w-full h-full bg-slate-950 border border-slate-800/40 rounded-sm flex items-center justify-center group hover:border-blue-500/30 transition-colors relative overflow-hidden"
           >
             <div className="w-1 h-1 rounded-full bg-slate-900 group-hover:bg-blue-900 transition-colors" />
             <div className="absolute inset-0 opacity-0 group-hover:opacity-5 bg-blue-500 transition-opacity pointer-events-none" />
