@@ -192,7 +192,7 @@ const App: React.FC = () => {
         }
       };
     });
-    addNotification(`${item.name} Equipado`, 'success');
+    addNotification(`${item.nome} Equipado`, 'success');
   };
 
   const handleUnequipItem = (slot: EquipmentSlot) => {
@@ -200,7 +200,7 @@ const App: React.FC = () => {
     setPlayerStatus(prev => {
       if (!prev) return null;
       const newEquip = { ...prev.equipment };
-      const itemName = newEquip[slot]?.name;
+      const itemName = newEquip[slot]?.nome;
       delete newEquip[slot];
       if (itemName) addNotification(`${itemName} Removido`, 'warning');
       return {
@@ -309,7 +309,7 @@ const App: React.FC = () => {
         )}
       </main>
       
-      <NotificationSystem notifications={[]} removeNotification={() => {}} />
+      <NotificationSystem notifications={history} removeNotification={(id) => setHistory(prev => prev.filter(n => n.id !== id))} />
     </div>
   );
 };

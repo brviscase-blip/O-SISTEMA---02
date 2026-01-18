@@ -41,7 +41,8 @@ const getRankColor = (rank: string) => {
 };
 
 const getAttributeIcon = (attr: string, size = 12) => {
-  switch (attr) {
+  const normalized = attr?.toUpperCase();
+  switch (normalized) {
     case 'FORÇA': return <Dumbbell size={size} />;
     case 'AGILIDADE': return <Zap size={size} />;
     case 'INTELIGÊNCIA': return <Brain size={size} />;
@@ -109,7 +110,7 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
       if (!item || !item.bonus) return acc;
       Object.entries(item.bonus).forEach(([stat, val]) => {
         const key = stat as keyof PlayerStats;
-        if (key in acc) (acc as any)[key] += (val as number) || 0;
+        if (key in acc) (acc as any)[key] += Number(val) || 0;
       });
       return acc;
     }, { strength: 0, agility: 0, intelligence: 0, perception: 0, vitality: 0, hp: 0, mp: 0 });
@@ -257,7 +258,6 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
         </div>
       </div>
       
-      {/* ... modais permanecem iguais ... */}
       {isWeaponManagerOpen && (
         <FullscreenModal title="ARSENAL DE ATAQUE" icon={<Sword size={24}/>} color="rose" onClose={() => setIsWeaponManagerOpen(false)} onConfirm={() => setIsWeaponManagerOpen(false)}>
             <div className="w-80 border-r border-slate-800 p-6 flex flex-col gap-6">
@@ -428,12 +428,47 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
             </div>
         </div>
       )}
+
+      {isEquipManagerOpen && (
+        <FullscreenModal title="SISTEMA DE MODULAÇÃO DE ARMADURA" icon={<Shield size={24}/>} color="blue" onClose={() => setIsEquipManagerOpen(false)} onConfirm={() => setIsEquipManagerOpen(false)}>
+            <div className="flex-1 p-8 overflow-y-auto no-scrollbar">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Object.entries(currentEquipment).map(([slot, item]) => (
+                        <div key={slot} className="bg-[#030712] border border-slate-800 p-6 rounded-sm flex flex-col gap-4 relative">
+                            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{slot}</span>
+                                {item && <button onClick={() => onUnequipItem?.(slot as any)} className="text-rose-500 hover:text-rose-400 transition-colors"><X size={16} /></button>}
+                            </div>
+                            {item ? (
+                                <div className="flex items-center gap-4">
+                                    <div className="w-16 h-16 bg-slate-950 border border-slate-800 rounded-sm overflow-hidden flex items-center justify-center">
+                                        {item.img ? <img src={item.img} className="w-full h-full object-cover" /> : <Shield size={24} className="text-slate-700" />}
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <h4 className="text-sm font-black text-white uppercase italic">{item.nome}</h4>
+                                        <span className={`text-[10px] font-black ${getRankColor(item.rank)}`}>RANK {item.rank}</span>
+                                        <span className="text-[9px] font-bold text-emerald-500 mt-1">{item.bonus_status}</span>
+                                    </div>
+                                </div>
+                            ) : (
+                                <div className="py-4 text-center border border-dashed border-slate-800 rounded-sm">
+                                    <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest">Nenhum Registro</p>
+                                </div>
+                            )}
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </FullscreenModal>
+      )}
     </div>
   );
 };
 
 const VitalStat = ({ label, current, max, bonus, icon, activeColor }: any) => {
-  const finalMax = max + (bonus || 0);
+  const finalMax = (Number(max) || 0) + (Number(bonus) || 0);
+  const fillWidth = finalMax > 0 ? Math.min(100, (current / finalMax) * 100) : 0;
+  
   return (
     <div className="flex items-center justify-between p-1.5 border border-slate-800 bg-black/40 rounded-sm relative overflow-hidden h-[48px]">
       <div className="flex items-center gap-2.5 z-10">
@@ -443,11 +478,11 @@ const VitalStat = ({ label, current, max, bonus, icon, activeColor }: any) => {
       <div className="text-right z-10">
         <div className="flex items-center justify-end gap-1">
             <span className={`text-sm font-black tabular-nums ${activeColor}`}>{current}</span>
-            <span className="text-[8px] text-slate-600 font-bold">/ {max}</span>
-            {bonus > 0 && <span className="text-[9px] font-black text-emerald-400">+{bonus}</span>}
+            <span className="text-[8px] text-slate-600 font-bold">/ {finalMax}</span>
+            {Number(bonus) > 0 && <span className="text-[9px] font-black text-emerald-400">+{bonus}</span>}
         </div>
       </div>
-      <div className={`absolute bottom-0 left-0 h-[1.5px] transition-all duration-1000 ${activeColor.replace('text', 'bg')}`} style={{ width: `${(current/finalMax)*100}%` }} />
+      <div className={`absolute bottom-0 left-0 h-[1.5px] transition-all duration-1000 ${activeColor.replace('text', 'bg')}`} style={{ width: `${fillWidth}%` }} />
     </div>
   );
 };
@@ -455,7 +490,7 @@ const VitalStat = ({ label, current, max, bonus, icon, activeColor }: any) => {
 const AttributeRow = ({ label, base, bonus, onUpgrade, canUpgrade, color }: any) => (
   <div className="flex items-center justify-between py-1 border-b border-slate-800/20 px-2 group/row hover:bg-white/5 h-[42px] min-h-0">
     <div><span className="text-[9px] font-black text-slate-500 uppercase leading-none">{label}</span><span className="text-[6px] font-bold text-slate-700 uppercase block italic">Poder</span></div>
-    <div className="flex items-center gap-2"><div className="flex flex-col items-end leading-none"><span className={`text-sm font-black tabular-nums ${color}`}>{base + (bonus || 0)}</span>{bonus > 0 && <span className="text-[8px] font-black text-emerald-500">+{bonus}</span>}</div>{canUpgrade && <button onClick={onUpgrade} className="w-5 h-5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white flex items-center justify-center rounded-sm transition-all border border-emerald-500/20"><Plus size={10} /></button>}</div>
+    <div className="flex items-center gap-2"><div className="flex flex-col items-end leading-none"><span className={`text-sm font-black tabular-nums ${color}`}>{Number(base) + (Number(bonus) || 0)}</span>{Number(bonus) > 0 && <span className="text-[8px] font-black text-emerald-500">+{bonus}</span>}</div>{canUpgrade && <button onClick={onUpgrade} className="w-5 h-5 bg-emerald-600/10 hover:bg-emerald-600 text-emerald-400 hover:text-white flex items-center justify-center rounded-sm transition-all border border-emerald-500/20"><Plus size={10} /></button>}</div>
   </div>
 );
 
@@ -470,12 +505,11 @@ const EquipmentSlotBox = ({ slot, label, item }: any) => {
   return (
     <div className={`flex flex-col p-1.5 rounded-sm border transition-all h-full ${isEquipped ? 'bg-purple-600/5 border-purple-500/60' : 'bg-slate-950 border-slate-800/40 opacity-40'}`}>
       <span className="text-[7px] font-black text-slate-500 uppercase">{label}</span>
-      <div className="flex-1 flex flex-col items-center justify-center text-center py-0.5"><div className={`mb-0.5 ${isEquipped ? 'text-purple-400' : 'text-slate-800'}`}>{getIcon(slot)}</div><h4 className={`text-[9px] font-black uppercase leading-[1.1] line-clamp-1 ${isEquipped ? 'text-white' : 'text-slate-800'}`}>{item?.nome || item?.name || 'Vazio'}</h4></div>
+      <div className="flex-1 flex flex-col items-center justify-center text-center py-0.5"><div className={`mb-0.5 ${isEquipped ? 'text-purple-400' : 'text-slate-800'}`}>{getIcon(slot)}</div><h4 className={`text-[9px] font-black uppercase leading-[1.1] line-clamp-1 ${isEquipped ? 'text-white' : 'text-slate-800'}`}>{item?.nome || 'Vazio'}</h4></div>
     </div>
   );
 };
 
-// ... restante dos subcomponentes (WeaponSlot, FullscreenModal, etc)
 const WeaponSlot = ({ label, weapon, icon, color }: any) => {
     const hasWeapon = !!weapon;
     return (

@@ -122,16 +122,17 @@ const ArmorsNexus: React.FC = () => {
     try {
       const { bonus_target, bonus_value, bonus_label, ...data } = formData;
       
-      // Mapeamento matemático para o banco de dados
       const statMap: Record<string, string> = {
           'FORÇA': 'strength', 'AGILIDADE': 'agility', 'INTELIGÊNCIA': 'intelligence',
           'VITALIDADE': 'vitality', 'PERCEPÇÃO': 'perception', 'HP': 'hp', 'MP': 'mp'
       };
 
+      const finalValue = Number(bonus_value) || 0;
+
       const payload = { 
           ...data,
-          bonus_status: bonus_label || `+${bonus_value} ${bonus_target}`,
-          bonus: { [statMap[bonus_target]]: Number(bonus_value) }
+          bonus_status: bonus_label || `+${finalValue} ${bonus_target}`,
+          bonus: { [statMap[bonus_target]]: finalValue }
       };
       
       if (editingId) {
@@ -215,7 +216,7 @@ const ArmorsNexus: React.FC = () => {
                             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                             <div className="flex items-center justify-between w-full">
                                 <span className="text-[10px] font-bold text-slate-600 truncate">{isUploading ? 'SYNC...' : formData.img ? 'OK' : 'SELECT'}</span>
-                                {formData.img && <div className="w-8 h-8 rounded-sm border border-slate-800 overflow-hidden"><img src={formData.img} className="w-full h-full object-cover" /></div>}
+                                {formData.img && <div className="w-8 h-8 rounded-sm border border-slate-800 overflow-hidden"><img src={formData.img} className="w-full h-full object-cover" alt="" /></div>}
                             </div>
                         </div>
                     </div>
@@ -236,7 +237,7 @@ const ArmorsNexus: React.FC = () => {
                     <div className={`absolute left-0 top-0 h-full w-1 ${theme.border}`} />
                     <div className="w-[20%] flex items-center gap-4">
                        <div className="w-16 h-16 bg-slate-950 border border-slate-800 rounded-sm flex items-center justify-center overflow-hidden flex-shrink-0 shadow-inner group-hover:border-blue-500/40">
-                          {item.img ? <img src={item.img} className="w-full h-full object-cover" /> : <Shield size={24} className="text-slate-800" />}
+                          {item.img ? <img src={item.img} className="w-full h-full object-cover" alt="" /> : <Shield size={24} className="text-slate-800" />}
                        </div>
                        <div className="flex flex-col min-w-0">
                           <h4 className="text-[12px] font-black text-white uppercase italic tracking-tighter truncate leading-tight">{item.nome}</h4>
@@ -267,7 +268,21 @@ const ArmorsNexus: React.FC = () => {
                        <p className="text-[9px] text-slate-500 italic line-clamp-3 leading-relaxed">{item.descricao_lore || 'Sem registro.'}</p>
                     </div>
                     <div className="w-[10%] flex items-center justify-end gap-2 pr-2">
-                       <button onClick={() => { setEditingId(item.id); setFormData({...item, bonus_target: Object.keys(item.bonus || {})[0]?.toUpperCase() === 'HP' ? 'HP' : 'FORÇA', bonus_value: Object.values(item.bonus || {})[0] as number}); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-amber-500 transition-all"><Edit3 size={16}/></button>
+                       <button onClick={() => { 
+                         const bonusData = item.bonus || {};
+                         const bonusKey = Object.keys(bonusData)[0];
+                         const revMap: Record<string, string> = {
+                            'strength': 'FORÇA', 'agility': 'AGILIDADE', 'intelligence': 'INTELIGÊNCIA',
+                            'vitality': 'VITALIDADE', 'perception': 'PERCEPÇÃO', 'hp': 'HP', 'mp': 'MP'
+                         };
+                         setEditingId(item.id); 
+                         setFormData({
+                            ...item, 
+                            bonus_target: revMap[bonusKey] || 'HP', 
+                            bonus_value: bonusData[bonusKey] || 0
+                         }); 
+                         window.scrollTo({top: 0, behavior: 'smooth'}); 
+                       }} className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-amber-500 transition-all"><Edit3 size={16}/></button>
                        <button onClick={() => deleteRecord(item.id)} className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-rose-500 transition-all"><Trash2 size={16}/></button>
                     </div>
                   </div>
