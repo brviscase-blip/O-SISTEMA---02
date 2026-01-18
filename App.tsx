@@ -13,6 +13,15 @@ import RankSelector from './components/RankSelector';
 import NotificationSystem, { Notification, NotificationType } from './components/NotificationSystem';
 import { ViewType, PlayerStatus, Habit, Task, Vice, ItemRank, EquipmentItem, EquipmentSlot } from './types';
 
+const RANK_CLASSES: Record<ItemRank, string> = {
+  'E': 'Iniciante',
+  'D': 'Assassino',
+  'C': 'O Necromante',
+  'B': 'Monarca das Sombras',
+  'A': 'Comandante de Legião',
+  'S': 'Soberano da Eternidade'
+};
+
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('SISTEMA');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
@@ -52,18 +61,22 @@ const App: React.FC = () => {
     setVices(savedVices ? JSON.parse(savedVices) : []);
 
     const savedStatus = localStorage.getItem(getRankKey('status'));
+    const className = RANK_CLASSES[selectedRank];
+    
     const defaultStatus: PlayerStatus = {
-      level: globalLevel, xp: 0, maxXp: 1000, rank: selectedRank, job: 'HUMANO DESPERTO', title: 'O INICIANTE',
+      level: globalLevel, xp: 0, maxXp: 1000, rank: selectedRank, job: className, title: className.toUpperCase(),
       hp: 100, maxHp: 100, mp: 20, maxMp: 20, gold: 0, statPoints: 0,
       stats: { strength: 10, agility: 10, intelligence: 10, perception: 10, vitality: 10 },
       equipment: {}, inventory: [], selectedCards: [], milestones: [],
-      completedTrials: [] // Inicializa vazio
+      completedTrials: [] 
     };
     
     if (savedStatus) {
       const parsed = JSON.parse(savedStatus);
       parsed.level = globalLevel;
       parsed.rank = selectedRank;
+      parsed.job = className;
+      parsed.title = className.toUpperCase();
       if (!parsed.completedTrials) parsed.completedTrials = [];
       setPlayerStatus(parsed);
     } else {
@@ -112,13 +125,14 @@ const App: React.FC = () => {
 
       const isRankUp = newRank !== oldRank;
       const newMaxXp = Math.floor(playerStatus.maxXp * 1.2);
+      const newJob = RANK_CLASSES[newRank];
       
       setEvolutionData({
         type: isRankUp ? 'RANK' : 'LEVEL',
         oldValue: isRankUp ? oldRank : oldLevel,
         newValue: isRankUp ? newRank : newLevel,
         rewards: isRankUp 
-          ? [`PROMOÇÃO PARA RANK ${newRank}`, "+10 Pontos de Status", "Restauração Completa"]
+          ? [`EVOLUÇÃO PARA: ${newJob.toUpperCase()}`, "+10 Pontos de Status", "Restauração Completa"]
           : ["+5 Pontos de Status", "HP/MP Restaurados"]
       });
 
@@ -128,6 +142,8 @@ const App: React.FC = () => {
           ...prev,
           level: newLevel,
           rank: newRank,
+          job: newJob,
+          title: newJob.toUpperCase(),
           xp: excessXp,
           maxXp: newMaxXp,
           statPoints: prev.statPoints + (isRankUp ? 10 : 5),
@@ -137,9 +153,9 @@ const App: React.FC = () => {
             ...prev.milestones,
             {
               id: `EVO-${Date.now()}`,
-              title: isRankUp ? `Ascensão de Rank: ${newRank}` : `Evolução de Nível: ${newLevel}`,
+              title: isRankUp ? `Ascensão de Classe: ${newJob}` : `Evolução de Nível: ${newLevel}`,
               description: isRankUp 
-                ? `O Monarca atingiu a autoridade de Rank ${newRank}.` 
+                ? `O Monarca agora é reconhecido como: ${newJob}.` 
                 : `O nível ${newLevel} foi alcançado.`,
               date: new Date().toISOString(),
               rank: newRank,

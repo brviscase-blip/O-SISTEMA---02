@@ -3,6 +3,15 @@ import React from 'react';
 import { Lock, Crown, ChevronRight, Zap, Target, Swords, History, Shield } from 'lucide-react';
 import { ItemRank, PlayerStatus } from '../types';
 
+const RANK_TITLES: Record<ItemRank, string> = {
+  'E': 'Iniciante',
+  'D': 'Assassino',
+  'C': 'O Necromante',
+  'B': 'Monarca das Sombras',
+  'A': 'Comandante de Legião',
+  'S': 'Soberano da Eternidade'
+};
+
 interface RankCardProps {
   rank: ItemRank;
   minLevel: number;
@@ -27,6 +36,7 @@ const RankCard: React.FC<RankCardProps> = ({ rank, minLevel, maxLevel, currentLe
 
   const theme = getRankTheme(rank);
   const progress = isUnlocked ? Math.min(100, ((currentLevel - minLevel) / (maxLevel - minLevel)) * 100) : 0;
+  const classTitle = RANK_TITLES[rank];
 
   return (
     <div 
@@ -43,7 +53,7 @@ const RankCard: React.FC<RankCardProps> = ({ rank, minLevel, maxLevel, currentLe
       <div className="flex justify-between items-start mb-8">
         <div>
           <h3 className={`text-4xl font-black italic tracking-tighter leading-none ${theme.color}`}>RANK {rank}</h3>
-          <p className="text-[9px] font-bold text-slate-500 uppercase tracking-[0.2em] mt-2">Instância Dimensional</p>
+          <p className="text-[10px] font-black text-slate-300 uppercase tracking-[0.1em] mt-2 italic group-hover:text-white transition-colors">{classTitle}</p>
         </div>
         {isUnlocked && <Crown size={20} className={`${theme.color} opacity-40 group-hover:opacity-100 transition-opacity`} />}
       </div>
