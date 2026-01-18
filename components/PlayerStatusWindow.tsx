@@ -451,7 +451,7 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                      </h3>
                      <div className="flex-1 bg-black/40 p-8 border border-emerald-500/10 rounded-sm relative shadow-inner overflow-y-auto custom-scrollbar">
                         <ScrollText className="absolute top-4 right-4 text-emerald-500/5" size={80} />
-                        <p className="text-[15px] text-slate-200 Poleading-relaxed font-medium italic opacity-90">
+                        <p className="text-[15px] text-slate-200 leading-relaxed font-medium italic opacity-90 whitespace-pre-line">
                            {selectedWeaponDetail.historia || 'As crônicas deste objeto foram perdidas no fluxo temporal do Sistema.'}
                         </p>
                      </div>
