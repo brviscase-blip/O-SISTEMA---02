@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { TrendingUp, Heart, Zap, Plus } from 'lucide-react';
+import { TrendingUp, Sword, Zap, Plus, Shield } from 'lucide-react';
 import { PlayerStatus, PlayerStats } from '../types';
 
 interface AttributeCardProps {
@@ -14,11 +14,12 @@ const AttributeCard: React.FC<AttributeCardProps> = ({ status, totalBonuses, onU
     <div className="h-full bg-[#030712] border border-slate-800 flex flex-col rounded-sm shadow-xl min-h-0 overflow-hidden">
       <div className="p-1.5 bg-black/40 border-b border-slate-800 flex items-center gap-2 flex-shrink-0">
         <TrendingUp size={10} className="text-purple-400" />
-        <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">ATRIBUTOS</h3>
+        <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">ATRIBUTOS DE COMBATE</h3>
       </div>
       <div className="p-1.5 flex-1 flex flex-col gap-1 min-h-0">
         <div className="space-y-1 flex-shrink-0">
-          <VitalStat label="VIDA" current={status.hp} max={status.maxHp} bonus={totalBonuses.hp} icon={<Heart size={14} />} activeColor="text-rose-500" />
+          {/* Dungeon HP: Escala +15 por nível */}
+          <VitalStat label="PODER VITAL" current={status.dungeon_hp} max={status.max_dungeon_hp} bonus={totalBonuses.hp} icon={<Shield size={14} />} activeColor="text-blue-500" />
           <VitalStat label="MANA" current={status.mp} max={status.maxMp} bonus={totalBonuses.mp} icon={<Zap size={14} />} activeColor="text-blue-400" />
         </div>
         <div className="border-t border-slate-800/50 pt-1 flex-1 flex flex-col justify-between">
@@ -47,7 +48,6 @@ const VitalStat = ({ label, current, max, bonus, icon, activeColor }: any) => {
         <div className="flex items-center justify-end gap-1">
           <span className={`text-sm font-black tabular-nums ${activeColor}`}>{current}</span>
           <span className="text-[8px] text-slate-600 font-bold">/ {finalMax}</span>
-          {Number(bonus) > 0 && <span className="text-[9px] font-black text-emerald-400">+{bonus}</span>}
         </div>
       </div>
       <div className={`absolute bottom-0 left-0 h-[1.5px] transition-all duration-1000 ${activeColor.replace('text', 'bg')}`} style={{ width: `${fillWidth}%` }} />

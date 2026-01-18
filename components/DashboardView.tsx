@@ -1,21 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { User, CheckCircle2, AlertTriangle, Clock, Target, ShieldCheck, Zap, AlertCircle, Timer, Milestone, UserPlus, Gauge, ArrowRight, TrendingUp, Info } from 'lucide-react';
-import { DemandItem, Difficulty, Priority } from '../types';
-
-// Fix: Defined interface for Stats to resolve 'unknown' property access errors
-interface MemberStats {
-  name: string;
-  total: number;
-  inProgress: number;
-  completed: number;
-  blocked: number;
-  overdue: number;
-  urgent: number;
-  onTime: number;
-  loadScore: number;
-  lastActivity: string;
-}
+import { DemandItem, Difficulty, Priority, MemberStats } from '../types';
 
 interface DashboardViewProps {
   demands: DemandItem[];
@@ -41,9 +27,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ demands }) => {
     }
   };
 
-  const processedStats = useMemo(() => {
+  // Fixed: typed useMemo return and reduce accumulator to resolve 'unknown[]' and '{}' property missing errors
+  const processedStats = useMemo((): MemberStats[] => {
     const now = new Date();
-    const stats = demands.reduce((acc, demand) => {
+    const stats = demands.reduce<Record<string, MemberStats>>((acc, demand) => {
       const resp = demand.responsible;
       if (!acc[resp]) {
         acc[resp] = {
@@ -78,9 +65,9 @@ const DashboardView: React.FC<DashboardViewProps> = ({ demands }) => {
       }
 
       return acc;
-    }, {} as Record<string, MemberStats>);
+    }, {});
 
-    return Object.values(stats).sort((a: MemberStats, b: MemberStats) => b.loadScore - a.loadScore);
+    return (Object.values(stats) as MemberStats[]).sort((a, b) => b.loadScore - a.loadScore);
   }, [demands]);
 
   const getCapacitySatus = (score: number) => {

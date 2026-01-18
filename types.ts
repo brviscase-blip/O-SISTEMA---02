@@ -1,29 +1,88 @@
 
-import React;
+import React from 'react';
 
-export type ViewType = 'SISTEMA' | 'TAREFAS' | 'DUNGEON' | 'TIMELINE';
+export type ViewType = 'SISTEMA' | 'TAREFAS' | 'DUNGEON' | 'TIMELINE' | 'PUNISHMENT';
 export type ItemRank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
 
+/* Shared Dashboard Member Stats */
+export interface MemberStats {
+  name: string;
+  total: number;
+  inProgress: number;
+  completed: number;
+  blocked: number;
+  overdue: number;
+  urgent: number;
+  onTime: number;
+  loadScore: number;
+  lastActivity: string;
+}
+
+/* File System Types */
+export type FileCategory = 'TODOS OS ATIVOS' | 'DOCUMENTOS' | 'FINANCEIROS' | 'JURÍDICOS';
+
+export interface FileItem {
+  id: string;
+  name: string;
+  type: string;
+  category: FileCategory;
+  size: string;
+}
+
+/* Demand & Task Management Types */
+export type DemandStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED' | 'CANCELLED';
+export type Priority = 'HIGH' | 'MEDIUM' | 'LOW';
+export type Difficulty = 'FÁCIL' | 'MÉDIA' | 'DIFÍCIL' | 'EXTREMA';
+
+export interface SubActivity {
+  id: string;
+  title: string;
+  completed: boolean;
+}
+
+export interface DemandItem {
+  id: string;
+  title: string;
+  requester: string;
+  responsible: string;
+  contract: string;
+  startDate: string;
+  dueDate: string;
+  status: DemandStatus;
+  priority: Priority;
+  difficulty: Difficulty;
+  pomodoros: number;
+  description: string;
+  subActivities: SubActivity[];
+  order?: number;
+}
+
+/* Notes & Documentation Types */
+export interface Note {
+  id: string;
+  title: string;
+  content: string;
+  folderId: string;
+  tags: string[];
+  updatedAt: string;
+  isFavorite: boolean;
+}
+
+export interface Folder {
+  id: string;
+  name: string;
+  color: string;
+}
+
+/* Player & RPG System Types */
 export interface PlayerStats {
   strength: number;
   agility: number;
   intelligence: number;
   perception: number;
   vitality: number;
-  hp?: number; 
+  hp?: number; // Representa o Dungeon HP Máximo (Base + Nível*15)
   mp?: number; 
-}
-
-export interface ArmorSet {
-  id: string;
-  nome: string;
-  rank: ItemRank;
-  descricao_lore: string;
-  nivel_desbloqueio: number;
-  img?: string;
-  boss_id?: string;
-  desafio_concluido?: boolean;
-  created_at?: string;
 }
 
 export interface PlayerStatus {
@@ -33,8 +92,10 @@ export interface PlayerStatus {
   rank: ItemRank;
   job: string;
   title: string;
-  hp: number;
-  maxHp: number;
+  hp: number;        // HP Global Atual (Vida Real)
+  maxHp: number;     // HP Global Máximo (Baseado no Rank: 100, 200...)
+  dungeon_hp: number; // HP de Combate Atual
+  max_dungeon_hp: number; // HP de Combate Máximo
   mp: number;
   maxMp: number;
   gold: number;
@@ -42,11 +103,11 @@ export interface PlayerStatus {
   stats: PlayerStats;
   equipment: Record<string, EquipmentItem | null>;
   inventory: any[];
-  selectedCards: string[]; 
   milestones: Milestone[];
   completedTrials: string[];
-  isDebilitated?: boolean;
-  isJobQuestActive?: boolean;
+  isPunished: boolean;
+  punishmentStartTime?: string;
+  criticalFailureCount: number;
 }
 
 export interface EquipmentItem {
@@ -60,6 +121,8 @@ export interface EquipmentItem {
   img: string;
   conjunto_id?: string;
 }
+
+export type EquipmentSlot = 'head' | 'chest' | 'hands' | 'legs' | 'feet' | 'ring';
 
 export interface Habit {
   id: string;
@@ -99,80 +162,6 @@ export interface Vice {
 
 export type NotificationType = 'success' | 'warning' | 'info' | 'error' | 'alert';
 
-export type DemandStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED' | 'CANCELLED';
-export type Priority = 'HIGH' | 'MEDIUM' | 'LOW';
-export type Difficulty = 'FÁCIL' | 'MÉDIA' | 'DIFÍCIL' | 'EXTREMA';
-
-export interface SubActivity {
-  id: string;
-  title: string;
-  completed: boolean;
-}
-
-export interface DemandItem {
-  id: string;
-  title: string;
-  requester: string;
-  responsible: string;
-  contract: string;
-  startDate: string;
-  dueDate: string;
-  status: DemandStatus;
-  priority: Priority;
-  difficulty: Difficulty;
-  pomodoros: number;
-  description: string;
-  subActivities: SubActivity[];
-  order?: number;
-}
-
-export type FileCategory = 'TODOS OS ATIVOS' | 'DOCUMENTOS' | 'FINANCEIROS' | 'JURÍDICOS';
-export interface FileItem {
-  id: string;
-  name: string;
-  type: string;
-  category: FileCategory;
-  size: string;
-}
-
-export interface Note {
-  id: string;
-  title: string;
-  content: string;
-  folderId: string;
-  tags: string[];
-  updatedAt: string;
-  isFavorite: boolean;
-}
-
-export interface Folder {
-  id: string;
-  name: string;
-  color: string;
-}
-
-export type EquipmentSlot = 'head' | 'chest' | 'hands' | 'legs' | 'feet' | 'ring';
-
-export interface Quest {
-  id: string;
-  title: string;
-  type: 'COMUM' | 'URGENTE' | 'TROCA_CLASSE';
-  status: 'ATIVA' | 'CONCLUIDA' | 'FALHA';
-  progress: number;
-  goal: number;
-  reward: string;
-}
-
-export interface Weapon {
-  id: string;
-  name: string;
-  rank: ItemRank;
-  type: string;
-  damage: number;
-  effect: string;
-  description: string;
-}
-
 export interface Milestone {
   id: string;
   title: string;
@@ -194,4 +183,35 @@ export interface SystemEvent {
   penalty: {
     hp?: number;
   };
+}
+
+export interface ArmorSet {
+  id: string;
+  nome: string;
+  rank: ItemRank;
+  descricao_lore: string;
+  nivel_desbloqueio: number;
+  img: string | null;
+  boss_id: string | null;
+  desafio_concluido: boolean;
+}
+
+export interface Quest {
+  id: string;
+  title: string;
+  type: 'NORMAL' | 'URGENTE';
+  status: 'ATIVA' | 'CONCLUIDA';
+  progress: number;
+  goal: number;
+  reward: string;
+}
+
+export interface Weapon {
+  id: string;
+  name: string;
+  rank: ItemRank;
+  type: string;
+  damage: number;
+  effect: string;
+  description: string;
 }

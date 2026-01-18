@@ -6,309 +6,139 @@ import PlayerStatusWindow from './components/PlayerStatusWindow';
 import { DungeonView } from './components/DungeonView';
 import TimelineView from './components/TimelineView';
 import TasksView from './components/TasksView';
-import SystemEventModal from './components/SystemEventModal';
+import PunishmentZone from './components/PunishmentZone';
 import EvolutionModal from './components/EvolutionModal';
-import AdminSettings from './components/AdminSettings';
 import RankSelector from './components/RankSelector';
 import NotificationSystem, { Notification, NotificationType } from './components/NotificationSystem';
-import { ViewType, PlayerStatus, Habit, Task, Vice, ItemRank, EquipmentItem, EquipmentSlot } from './types';
+import { ViewType, PlayerStatus, Habit, Task, Vice, ItemRank } from './types';
 
-const RANK_CLASSES: Record<ItemRank, string> = {
-  'E': 'Iniciante',
-  'D': 'Assassino',
-  'C': 'O Necromante',
-  'B': 'Monarca das Sombras',
-  'A': 'Comandante de Legião',
-  'S': 'Soberano da Eternidade'
+const getXPNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
+
+const getRankByLevel = (lvl: number): ItemRank => {
+  if (lvl <= 100) return 'E';
+  if (lvl <= 250) return 'D';
+  if (lvl <= 450) return 'C';
+  if (lvl <= 650) return 'B';
+  if (lvl <= 850) return 'A';
+  return 'S';
+};
+
+const getMaxHPByRank = (rank: ItemRank) => {
+  const map = { 'E': 100, 'D': 200, 'C': 300, 'B': 400, 'A': 500, 'S': 600 };
+  return map[rank] || 100;
 };
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('SISTEMA');
   const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [isAdminOpen, setIsAdminOpen] = useState(false);
-  const [activeEvent, setActiveEvent] = useState<any>(null);
   const [evolutionData, setEvolutionData] = useState<any>(null);
   const [activeTrialWeapon, setActiveTrialWeapon] = useState<any | null>(null);
-  
   const [selectedRank, setSelectedRank] = useState<ItemRank | null>(null);
-  const [globalLevel, setGlobalLevel] = useState<number>(() => {
-    const saved = localStorage.getItem('global_player_level');
-    return saved ? parseInt(saved) : 1;
-  });
-
-  useEffect(() => {
-    localStorage.setItem('global_player_level', globalLevel.toString());
-  }, [globalLevel]);
-
-  const getRankKey = (key: string) => `rank_${selectedRank || 'E'}_${key}`;
-
+  
   const [habits, setHabits] = useState<Habit[]>([]);
   const [tasks, setTasks] = useState<Task[]>([]);
   const [vices, setVices] = useState<Vice[]>([]);
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
 
+  // Inicialização com as novas regras matemáticas
   useEffect(() => {
     if (!selectedRank) return;
-
-    const savedHabits = localStorage.getItem(getRankKey('habits'));
-    setHabits(savedHabits ? JSON.parse(savedHabits) : []);
-
-    const savedTasks = localStorage.getItem(getRankKey('tasks'));
-    setTasks(savedTasks ? JSON.parse(savedTasks) : []);
-
-    const savedVices = localStorage.getItem(getRankKey('vices'));
-    setVices(savedVices ? JSON.parse(savedVices) : []);
-
-    const savedStatus = localStorage.getItem(getRankKey('status'));
-    const className = RANK_CLASSES[selectedRank];
+    const rankKey = `rank_${selectedRank}_status`;
+    const saved = localStorage.getItem(rankKey);
     
-    const defaultStatus: PlayerStatus = {
-      level: globalLevel, xp: 0, maxXp: 1000, rank: selectedRank, job: className, title: className.toUpperCase(),
-      hp: 100, maxHp: 100, mp: 20, maxMp: 20, gold: 0, statPoints: 0,
-      stats: { strength: 10, agility: 10, intelligence: 10, perception: 10, vitality: 10 },
-      equipment: {}, inventory: [], selectedCards: [], milestones: [],
-      completedTrials: [] 
-    };
-    
-    if (savedStatus) {
-      const parsed = JSON.parse(savedStatus);
-      parsed.level = globalLevel;
-      parsed.rank = selectedRank;
-      parsed.job = className;
-      parsed.title = className.toUpperCase();
-      if (!parsed.completedTrials) parsed.completedTrials = [];
-      setPlayerStatus(parsed);
+    if (saved) {
+      setPlayerStatus(JSON.parse(saved));
     } else {
-      setPlayerStatus(defaultStatus);
+      const initialLvl = 1;
+      const maxGlobal = getMaxHPByRank(selectedRank);
+      setPlayerStatus({
+        level: initialLvl, xp: 0, maxXp: getXPNeeded(initialLvl),
+        rank: selectedRank, job: 'Iniciante', title: 'Leveling...',
+        hp: maxGlobal, maxHp: maxGlobal, 
+        dungeon_hp: 100 + (initialLvl * 15), max_dungeon_hp: 100 + (initialLvl * 15),
+        mp: 50, maxMp: 50, gold: 0, statPoints: 0,
+        stats: { strength: 10, agility: 10, intelligence: 10, perception: 10, vitality: 10 },
+        equipment: {}, inventory: [], milestones: [],
+        completedTrials: [], isPunished: false, criticalFailureCount: 0
+      });
     }
   }, [selectedRank]);
 
-  useEffect(() => {
-    if (!selectedRank) return;
-    localStorage.setItem(getRankKey('habits'), JSON.stringify(habits));
-  }, [habits, selectedRank]);
+  // Função handleUpdatePlayer simulando a RPC do Supabase
+  const handleUpdatePlayer = (updates: Partial<PlayerStatus>) => {
+    setPlayerStatus(prev => {
+      if (!prev) return null;
+      let next = { ...prev, ...updates };
 
-  useEffect(() => {
-    if (!selectedRank) return;
-    localStorage.setItem(getRankKey('tasks'), JSON.stringify(tasks));
-  }, [tasks, selectedRank]);
-
-  useEffect(() => {
-    if (!selectedRank) return;
-    localStorage.setItem(getRankKey('vices'), JSON.stringify(vices));
-  }, [vices, selectedRank]);
-
-  useEffect(() => {
-    if (!selectedRank || !playerStatus) return;
-    localStorage.setItem(getRankKey('status'), JSON.stringify(playerStatus));
-    if (playerStatus.level !== globalLevel) {
-      setGlobalLevel(playerStatus.level);
-    }
-  }, [playerStatus, selectedRank]);
-
-  useEffect(() => {
-    if (!playerStatus) return;
-
-    if (playerStatus.xp >= playerStatus.maxXp) {
-      const excessXp = playerStatus.xp - playerStatus.maxXp;
-      const oldLevel = playerStatus.level;
-      const newLevel = oldLevel + 1;
-      const oldRank = playerStatus.rank;
-      
-      const rankOrder: ItemRank[] = ['E', 'D', 'C', 'B', 'A', 'S'];
-      let newRank = oldRank;
-      
-      if (newLevel % 100 === 0 && rankOrder.indexOf(oldRank) < rankOrder.length - 1) {
-        newRank = rankOrder[rankOrder.indexOf(oldRank) + 1];
+      // Se houver ganho de XP, verificar Level Up
+      if (updates.xp !== undefined && next.xp >= next.maxXp) {
+        while (next.xp >= next.maxXp) {
+          next.xp -= next.maxXp;
+          next.level += 1;
+          next.maxXp = getXPNeeded(next.level);
+          next.statPoints += 5;
+          // Dungeon HP sobe +15 por nível
+          next.max_dungeon_hp = 100 + (next.level * 15);
+          next.dungeon_hp = next.max_dungeon_hp;
+          
+          // Verificar Mudança de Rank Automática
+          const newRank = getRankByLevel(next.level);
+          if (newRank !== next.rank) {
+            const oldRank = next.rank;
+            next.rank = newRank;
+            next.maxHp = getMaxHPByRank(newRank);
+            next.hp = next.maxHp; // Cura total ao subir de Rank
+            setEvolutionData({ type: 'RANK', oldValue: oldRank, newValue: newRank, rewards: [`HP Global: ${next.maxHp}`, "Novas Dungeons Desbloqueadas"] });
+          } else {
+            setEvolutionData({ type: 'LEVEL', oldValue: next.level - 1, newValue: next.level, rewards: ["+5 Atributos", "+15 HP Dungeon"] });
+          }
+        }
       }
 
-      const isRankUp = newRank !== oldRank;
-      const newMaxXp = Math.floor(playerStatus.maxXp * 1.2);
-      const newJob = RANK_CLASSES[newRank];
-      
-      setEvolutionData({
-        type: isRankUp ? 'RANK' : 'LEVEL',
-        oldValue: isRankUp ? oldRank : oldLevel,
-        newValue: isRankUp ? newRank : newLevel,
-        rewards: isRankUp 
-          ? [`EVOLUÇÃO PARA: ${newJob.toUpperCase()}`, "+10 Pontos de Status", "Restauração Completa"]
-          : ["+5 Pontos de Status", "HP/MP Restaurados"]
-      });
+      // Verificação de Punição (HP Global <= 0)
+      if (next.hp <= 0 && !next.isPunished) {
+        next.hp = 0;
+        next.isPunished = true;
+        next.punishmentStartTime = new Date().toISOString();
+        addNotification("SISTEMA: ENTRANDO NA ZONA DE PUNIÇÃO.", "error");
+      }
 
-      setPlayerStatus(prev => {
-        if (!prev) return null;
-        return {
-          ...prev,
-          level: newLevel,
-          rank: newRank,
-          job: newJob,
-          title: newJob.toUpperCase(),
-          xp: excessXp,
-          maxXp: newMaxXp,
-          statPoints: prev.statPoints + (isRankUp ? 10 : 5),
-          hp: prev.maxHp,
-          mp: prev.maxMp,
-          milestones: [
-            ...prev.milestones,
-            {
-              id: `EVO-${Date.now()}`,
-              title: isRankUp ? `Ascensão de Classe: ${newJob}` : `Evolução de Nível: ${newLevel}`,
-              description: isRankUp 
-                ? `O Monarca agora é reconhecido como: ${newJob}.` 
-                : `O nível ${newLevel} foi alcançado.`,
-              date: new Date().toISOString(),
-              rank: newRank,
-              level: newLevel
-            }
-          ]
-        };
-      });
-    }
-  }, [playerStatus?.xp, playerStatus?.maxXp]);
+      localStorage.setItem(`rank_${next.rank}_status`, JSON.stringify(next));
+      return next;
+    });
+  };
 
   const [history, setHistory] = useState<Notification[]>([]);
-
   const addNotification = useCallback((message: string, type: NotificationType = 'info') => {
     const id = Math.random().toString(36).substr(2, 9);
-    const newNotif = { id, message, type };
-    setHistory(prev => [...prev, newNotif]);
+    setHistory(prev => [...prev, { id, message, type }]);
   }, []);
 
-  const handleUpdatePlayer = (updates: Partial<PlayerStatus>) => {
-    if (!playerStatus) return;
-    setPlayerStatus(prev => prev ? ({ ...prev, ...updates }) : null);
-  };
-
-  const handleEquipItem = (item: EquipmentItem) => {
-    if (!playerStatus) return;
-    setPlayerStatus(prev => {
-      if (!prev) return null;
-      return {
-        ...prev,
-        equipment: {
-          ...prev.equipment,
-          [item.slot]: item
-        }
-      };
-    });
-    addNotification(`${item.nome} Equipado`, 'success');
-  };
-
-  const handleUnequipItem = (slot: EquipmentSlot) => {
-    if (!playerStatus) return;
-    setPlayerStatus(prev => {
-      if (!prev) return null;
-      const newEquip = { ...prev.equipment };
-      const itemName = newEquip[slot]?.nome;
-      delete newEquip[slot];
-      if (itemName) addNotification(`${itemName} Removido`, 'warning');
-      return {
-        ...prev,
-        equipment: newEquip
-      };
-    });
-  };
-
-  const startWeaponTrial = (weapon: any) => {
-    setActiveTrialWeapon(weapon);
-    setActiveView('DUNGEON');
-  };
-
-  if (!selectedRank) {
-    return <RankSelector currentLevel={globalLevel} onSelectRank={setSelectedRank} />;
-  }
-
+  if (!selectedRank) return <RankSelector currentLevel={1} onSelectRank={setSelectedRank} />;
+  
   return (
     <div className="flex h-screen w-full bg-[#010307] text-slate-200 font-sans overflow-hidden">
-      <Sidebar 
-        activeView={activeView} 
-        onViewChange={setActiveView} 
-        isCollapsed={isSidebarCollapsed} 
-        onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} 
-        isMobileOpen={isMobileSidebarOpen} 
-        onMobileClose={() => setIsMobileSidebarOpen(false)} 
-        onOpenAdmin={() => setIsAdminOpen(true)}
-        onExitRank={() => setSelectedRank(null)}
-      />
+      <Sidebar activeView={activeView} onViewChange={setActiveView} isCollapsed={isSidebarCollapsed} onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} isMobileOpen={isMobileSidebarOpen} onMobileClose={() => setIsMobileSidebarOpen(false)} onExitRank={() => setSelectedRank(null)} />
       
       <main className="flex-1 flex flex-col min-w-0 bg-[#010307] relative h-full overflow-hidden">
-        <Header 
-          onSearchChange={() => {}} 
-          title={selectedRank ? `PLANO DIMENSIONAL - RANK ${selectedRank}` : 'O SISTEMA'} 
-          history={history} 
-          onClearHistory={() => setHistory([])} 
-          onRemoveHistoryItem={(id) => setHistory(prev => prev.filter(n => n.id !== id))} 
-          onMenuClick={() => setIsMobileSidebarOpen(true)} 
-        />
+        <Header title={`SISTEMA - RANK ${selectedRank}`} history={history} onClearHistory={() => setHistory([])} onRemoveHistoryItem={(id) => setHistory(prev => prev.filter(n => n.id !== id))} onMenuClick={() => setIsMobileSidebarOpen(true)} />
         
-        <div className="flex-1 w-full overflow-hidden">
-          {activeView === 'SISTEMA' && playerStatus && (
-            <PlayerStatusWindow 
-              status={playerStatus} 
-              habits={habits}
-              tasks={tasks}
-              vices={vices}
-              onUpdateStat={(stat) => {
-                if (playerStatus.statPoints <= 0) return;
-                setPlayerStatus(prev => prev ? ({...prev, statPoints: prev.statPoints - 1, stats: {...prev.stats, [stat]: prev.stats[stat] + 1}}) : null);
-              }}
-              onUpdatePlayer={handleUpdatePlayer}
-              onEquipItem={handleEquipItem}
-              onUnequipItem={handleUnequipItem}
-              onStartTrial={startWeaponTrial}
-            />
-          )}
-          {activeView === 'TAREFAS' && playerStatus && (
-            <div className="h-full flex flex-col overflow-y-auto no-scrollbar">
-              <TasksView 
-                playerStatus={playerStatus} 
-                onUpdatePlayer={handleUpdatePlayer} 
-                addNotification={addNotification}
-                habits={habits}
-                setHabits={setHabits}
-                tasks={tasks}
-                setTasks={setTasks}
-                vices={vices}
-                setVices={setVices}
-              />
-            </div>
-          )}
-          {activeView === 'DUNGEON' && playerStatus && (
-            <div className="h-full overflow-y-auto no-scrollbar">
-              <DungeonView 
-                playerStatus={playerStatus} 
-                setPlayerStatus={setPlayerStatus as any} 
-                addNotification={addNotification}
-                forcedTrialWeapon={activeTrialWeapon}
-                onTrialEnd={() => setActiveTrialWeapon(null)}
-              />
-            </div>
-          )}
-          {activeView === 'TIMELINE' && playerStatus && (
-            <div className="h-full overflow-y-auto no-scrollbar">
-              <TimelineView milestones={playerStatus.milestones} currentRank={playerStatus.rank} />
-            </div>
+        <div className="flex-1 w-full overflow-hidden relative">
+          {playerStatus?.isPunished ? (
+            <PunishmentZone status={playerStatus} onComplete={() => { handleUpdatePlayer({ isPunished: false, hp: Math.floor(playerStatus.maxHp * 0.1) }); addNotification("ACESSO RESTAURADO.", "success"); }} />
+          ) : (
+            <>
+              {activeView === 'SISTEMA' && playerStatus && <PlayerStatusWindow status={playerStatus} onUpdateStat={(s) => playerStatus.statPoints > 0 && handleUpdatePlayer({ statPoints: playerStatus.statPoints - 1, stats: {...playerStatus.stats, [s]: playerStatus.stats[s] + 1}})} onEquipItem={(i) => handleUpdatePlayer({ equipment: {...playerStatus.equipment, [i.slot]: i} })} onUnequipItem={(s) => { const e = {...playerStatus.equipment}; delete e[s]; handleUpdatePlayer({ equipment: e }); }} onStartTrial={(w) => { setActiveTrialWeapon(w); setActiveView('DUNGEON'); }} habits={[]} tasks={[]} vices={[]} />}
+              {activeView === 'TAREFAS' && playerStatus && <TasksView playerStatus={playerStatus} onUpdatePlayer={handleUpdatePlayer} addNotification={addNotification} habits={habits} setHabits={setHabits} tasks={tasks} setTasks={setTasks} vices={vices} setVices={setVices} />}
+              {activeView === 'DUNGEON' && playerStatus && <DungeonView playerStatus={playerStatus} setPlayerStatus={setPlayerStatus as any} addNotification={addNotification} forcedTrialWeapon={activeTrialWeapon} onTrialEnd={() => setActiveTrialWeapon(null)} />}
+              {activeView === 'TIMELINE' && playerStatus && <TimelineView milestones={playerStatus.milestones} currentRank={playerStatus.rank} />}
+            </>
           )}
         </div>
         
-        {isAdminOpen && <AdminSettings onClose={() => setIsAdminOpen(false)} />}
-        
-        {activeEvent && (
-          <SystemEventModal event={activeEvent} onComplete={() => setActiveEvent(null)} onFail={() => setActiveEvent(null)} />
-        )}
-
-        {evolutionData && (
-          <EvolutionModal 
-            type={evolutionData.type}
-            oldValue={evolutionData.oldValue}
-            newValue={evolutionData.newValue}
-            rewards={evolutionData.rewards}
-            onClose={() => setEvolutionData(null)}
-          />
-        )}
+        {evolutionData && <EvolutionModal type={evolutionData.type} oldValue={evolutionData.oldValue} newValue={evolutionData.newValue} rewards={evolutionData.rewards} onClose={() => setEvolutionData(null)} />}
       </main>
-      
       <NotificationSystem notifications={history} removeNotification={(id) => setHistory(prev => prev.filter(n => n.id !== id))} />
     </div>
   );

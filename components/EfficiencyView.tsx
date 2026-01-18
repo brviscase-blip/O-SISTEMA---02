@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { User, ShieldCheck, Zap, AlertCircle, CheckCircle2, Milestone, TrendingUp, ArrowRight, Gauge, Clock, Target, AlertTriangle } from 'lucide-react';
-import { DemandItem, Difficulty } from '../types';
+import { DemandItem, Difficulty, MemberStats } from '../types';
 
 interface EfficiencyViewProps {
   demands: DemandItem[];
@@ -27,9 +27,10 @@ const EfficiencyView: React.FC<EfficiencyViewProps> = ({ demands }) => {
     }
   };
 
-  const processedStats = useMemo(() => {
+  // Fixed: typed useMemo return to avoid unknown[] assignment errors
+  const processedStats = useMemo((): MemberStats[] => {
     const now = new Date();
-    const statsMap: Record<string, any> = {};
+    const statsMap: Record<string, MemberStats> = {};
 
     demands.forEach(demand => {
       const resp = demand.responsible || 'Sem Atribuição';
@@ -38,16 +39,21 @@ const EfficiencyView: React.FC<EfficiencyViewProps> = ({ demands }) => {
           name: resp,
           total: 0,
           completed: 0,
-          active: 0,
-          overdue: 0,
-          onTime: 0,
+          inProgress: 0,
           blocked: 0,
+          overdue: 0,
+          urgent: 0,
+          onTime: 0,
           loadScore: 0,
-          difficulties: { 'FÁCIL': 0, 'MÉDIA': 0, 'DIFÍCIL': 0, 'EXTREMA': 0 }
-        };
+          lastActivity: demand.dueDate
+        } as any; // Using any to allow internal helper fields like 'active' or 'difficulties'
+        
+        // Internal helper fields for EfficiencyView logic
+        (statsMap[resp] as any).active = 0;
+        (statsMap[resp] as any).difficulties = { 'FÁCIL': 0, 'MÉDIA': 0, 'DIFÍCIL': 0, 'EXTREMA': 0 };
       }
 
-      const s = statsMap[resp];
+      const s = statsMap[resp] as any;
       s.total += 1;
       s.difficulties[demand.difficulty] += 1;
 
@@ -55,22 +61,23 @@ const EfficiencyView: React.FC<EfficiencyViewProps> = ({ demands }) => {
         s.completed += 1;
       } else if (demand.status !== 'CANCELLED') {
         s.active += 1;
+        if (demand.status === 'IN_PROGRESS') s.inProgress += 1;
         if (demand.status === 'BLOCKED') s.blocked += 1;
 
         // Deadline check
         const dueDate = parseDate(demand.dueDate);
-        if (dueDate < now) {
-          s.overdue += 1;
-        } else {
-          s.onTime += 1;
-        }
+        const diffDays = Math.ceil((dueDate.getTime() - now.getTime()) / (1000 * 3600 * 24));
+        
+        if (diffDays < 0) s.overdue += 1;
+        else if (diffDays <= 3) s.urgent += 1;
+        else s.onTime += 1;
 
         // Weighted load score
         s.loadScore += DIFFICULTY_WEIGHTS[demand.difficulty] || 0;
       }
     });
 
-    return Object.values(statsMap).sort((a, b) => b.loadScore - a.loadScore);
+    return (Object.values(statsMap) as MemberStats[]).sort((a, b) => b.loadScore - a.loadScore);
   }, [demands]);
 
   const getCapacityStatus = (score: number) => {
