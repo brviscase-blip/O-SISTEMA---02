@@ -114,13 +114,13 @@ const PlayerStatusWindow: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* DASHBOARD DE MATRIZ PRINCIPAL */}
-      <div className="flex-1 flex flex-col gap-2 min-h-0">
+      {/* DASHBOARD DE MATRIZ PRINCIPAL - DIVISÃO 55% / 45% */}
+      <div className="flex-1 grid grid-cols-[55fr_45fr] gap-2 min-h-0">
         
-        {/* PARTE SUPERIOR: OPERAÇÕES E CORE */}
-        <div className="flex-[1.5] grid grid-cols-12 gap-2 min-h-0">
-          {/* Coluna Esquerda (8 Colunas) */}
-          <div className="col-span-8 flex flex-col gap-2">
+        {/* GRUPO VERMELHO (55% - LADO ESQUERDO) */}
+        <div className="flex flex-col gap-2 min-h-0">
+          {/* Operações de Combate */}
+          <div className="flex flex-col gap-2 flex-1 min-h-0">
             <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
             <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
               <ArmorCard equipment={status.equipment} onOpenManagement={() => setIsArmorModalOpen(true)} />
@@ -128,36 +128,43 @@ const PlayerStatusWindow: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Coluna Direita (4 Colunas) - Mega Core */}
-          <div className="col-span-4 bg-[#030712] border border-slate-800 rounded-sm flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl">
+          {/* Rodapé Vermelho (Inventário e Consumíveis) */}
+          <div className="grid grid-cols-2 gap-2 h-[180px] flex-shrink-0">
+            <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
+            <InventorySection title="CONSUMÍVEIS" slots={10} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
+          </div>
+        </div>
+
+        {/* GRUPO AZUL (45% - LADO DIREITO) */}
+        <div className="flex flex-col gap-2 min-h-0">
+          {/* Mega Core Placeholder (Ocupa o topo dos 45%) */}
+          <div className="flex-1 bg-[#030712] border border-slate-800 rounded-sm flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl">
              <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
              <div className="absolute inset-0 bg-gradient-to-b from-blue-500/[0.02] to-transparent pointer-events-none" />
              <div className="absolute top-0 left-0 w-full h-px bg-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-[scan_4s_linear_infinite]" />
 
-             <div className="relative z-10 flex flex-col items-center">
-                <div className="w-20 h-20 rounded-full bg-slate-900/50 border border-slate-800 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] group-hover:border-blue-500/30 transition-colors duration-700">
-                   <Cpu size={40} className="text-slate-800 group-hover:text-blue-500/40 transition-colors duration-700 animate-pulse" />
+             <div className="relative z-10 flex flex-col items-center p-8">
+                <div className="w-24 h-24 rounded-full bg-slate-900/50 border border-slate-800 flex items-center justify-center mb-8 shadow-[0_0_60px_rgba(0,0,0,0.5)] group-hover:border-blue-500/30 transition-colors duration-700">
+                   <Cpu size={48} className="text-slate-800 group-hover:text-blue-500/40 transition-colors duration-700 animate-pulse" />
                 </div>
-                <h3 className="text-sm font-black uppercase tracking-[0.5em] text-slate-200 opacity-60">Visualizer_Core</h3>
-                <div className="flex items-center gap-3 mt-4">
-                   <div className="w-1 h-1 rounded-full bg-blue-500 animate-ping" />
-                   <p className="text-[8px] font-bold text-slate-600 uppercase tracking-[0.3em] italic">Aguardando Input Biométrico</p>
+                <h3 className="text-base font-black uppercase tracking-[0.6em] text-slate-200 opacity-60">Visualizer_Core</h3>
+                <div className="flex items-center gap-3 mt-5">
+                   <div className="w-1.5 h-1.5 rounded-full bg-blue-500 animate-ping" />
+                   <p className="text-[9px] font-bold text-slate-600 uppercase tracking-[0.4em] italic">Aguardando Input Biométrico</p>
                 </div>
              </div>
              
              {/* Corner Accents */}
-             <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-slate-800" />
-             <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-slate-800" />
-             <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-slate-800" />
-             <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-slate-800" />
+             <div className="absolute top-3 left-3 w-3 h-3 border-t border-l border-slate-800" />
+             <div className="absolute top-3 right-3 w-3 h-3 border-t border-r border-slate-800" />
+             <div className="absolute bottom-3 left-3 w-3 h-3 border-b border-l border-slate-800" />
+             <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r border-slate-800" />
           </div>
-        </div>
 
-        {/* PARTE INFERIOR: FILEIRA UNIFICADA DE ARMAZENAMENTO (Inventário, Consumíveis, Exército) */}
-        <div className="flex-1 grid grid-cols-3 gap-2 min-h-0">
-          <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
-          <InventorySection title="CONSUMÍVEIS" slots={10} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
-          <InventorySection title="EXÉRCITO DAS SOMBRAS" slots={10} gridCols="grid-cols-5" icon={<Ghost size={10}/>} color="purple" />
+          {/* Rodapé Azul (Exército das Sombras - Mantém alinhamento horizontal) */}
+          <div className="h-[180px] flex-shrink-0">
+            <InventorySection title="EXÉRCITO DAS SOMBRAS" slots={10} gridCols="grid-cols-5" icon={<Ghost size={10}/>} color="purple" />
+          </div>
         </div>
       </div>
 
@@ -199,7 +206,7 @@ const PlayerStatusWindow: React.FC<Props> = ({
           0% { transform: translateY(0); opacity: 0; }
           10% { opacity: 1; }
           90% { opacity: 1; }
-          100% { transform: translateY(400px); opacity: 0; }
+          100% { transform: translateY(500px); opacity: 0; }
         }
       `}</style>
     </div>
