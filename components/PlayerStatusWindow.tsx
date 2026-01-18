@@ -114,13 +114,13 @@ const PlayerStatusWindow: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* DASHBOARD DE MATRIZ PRINCIPAL - DIVISÃO EQUILIBRADA 50% / 50% */}
-      <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
+      {/* DASHBOARD DE MATRIZ PRINCIPAL - PROPORÇÕES: 50/50 LARGURA | 60/40 ALTURA */}
+      <div className="flex-1 grid grid-cols-2 gap-2 min-h-0 overflow-hidden">
         
-        {/* GRUPO VERMELHO (50% - LADO ESQUERDO) */}
-        <div className="flex flex-col gap-2 min-h-0">
-          {/* Operações de Combate */}
-          <div className="flex flex-col gap-2 flex-1 min-h-0">
+        {/* COLUNA ESQUERDA */}
+        <div className="flex flex-col gap-2 min-h-0 h-full">
+          {/* GRUPO AZUL (SUPERIOR - 60%) */}
+          <div className="flex flex-col gap-2 flex-[60] min-h-0">
             <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
             <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
               <ArmorCard equipment={status.equipment} onOpenManagement={() => setIsArmorModalOpen(true)} />
@@ -128,17 +128,17 @@ const PlayerStatusWindow: React.FC<Props> = ({
             </div>
           </div>
 
-          {/* Rodapé Vermelho (Inventário e Consumíveis) */}
-          <div className="grid grid-cols-2 gap-2 h-[180px] flex-shrink-0">
+          {/* GRUPO VERMELHO (INFERIOR - 40%) */}
+          <div className="grid grid-cols-2 gap-2 flex-[40] min-h-0">
             <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
             <InventorySection title="CONSUMÍVEIS" slots={10} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
           </div>
         </div>
 
-        {/* GRUPO AZUL (50% - LADO DIREITO) */}
-        <div className="flex flex-col gap-2 min-h-0">
-          {/* Mega Core Placeholder (Ocupa o topo dos 50%) */}
-          <div className="flex-1 bg-[#030712] border border-slate-800 rounded-sm flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl">
+        {/* COLUNA DIREITA */}
+        <div className="flex flex-col gap-2 min-h-0 h-full">
+          {/* GRUPO AZUL (SUPERIOR - 60%) */}
+          <div className="flex-[60] bg-[#030712] border border-slate-800 rounded-sm flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl min-h-0">
              <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
              <div className="absolute inset-0 bg-gradient-to-b from-blue-500/[0.02] to-transparent pointer-events-none" />
              <div className="absolute top-0 left-0 w-full h-px bg-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-[scan_4s_linear_infinite]" />
@@ -154,15 +154,14 @@ const PlayerStatusWindow: React.FC<Props> = ({
                 </div>
              </div>
              
-             {/* Corner Accents */}
              <div className="absolute top-3 left-3 w-3 h-3 border-t border-l border-slate-800" />
              <div className="absolute top-3 right-3 w-3 h-3 border-t border-r border-slate-800" />
              <div className="absolute bottom-3 left-3 w-3 h-3 border-b border-l border-slate-800" />
              <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r border-slate-800" />
           </div>
 
-          {/* Rodapé Azul (Exército das Sombras - Mantém alinhamento horizontal) */}
-          <div className="h-[180px] flex-shrink-0">
+          {/* GRUPO VERMELHO (INFERIOR - 40%) */}
+          <div className="flex-[40] min-h-0">
             <InventorySection title="EXÉRCITO DAS SOMBRAS" slots={10} gridCols="grid-cols-5" icon={<Ghost size={10}/>} color="purple" />
           </div>
         </div>
@@ -232,7 +231,7 @@ const InventorySection = ({ title, slots, gridCols, icon, color }: any) => {
         </button>
       </div>
 
-      <div className={`p-1 flex-1 grid ${gridCols} gap-1 min-h-0`}>
+      <div className={`p-1 flex-1 grid ${gridCols} gap-1 min-h-0 overflow-y-auto custom-scrollbar content-start`}>
         {Array.from({ length: slots }).map((_, i) => (
           <div 
             key={i} 
