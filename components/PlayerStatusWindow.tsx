@@ -114,41 +114,32 @@ const PlayerStatusWindow: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* DASHBOARD DE MATRIZ PRINCIPAL */}
-      <div className="flex-1 grid grid-cols-2 gap-2 min-h-0 overflow-hidden">
+      {/* DASHBOARD PRINCIPAL - ESTRUTURA DE PROPORÇÃO 60/40 */}
+      <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
         
-        {/* COLUNA ESQUERDA */}
-        <div className="flex flex-col gap-2 min-h-0 h-full">
+        {/* BLOCO SUPERIOR (GRUPO AZUL) - 60% DA ALTURA */}
+        <div className="flex-[60] grid grid-cols-2 gap-2 min-h-0">
           
-          {/* 1. ATRIBUTOS (FICA NO LUGAR DELE - TOPO) */}
-          <div className="flex-shrink-0">
-            <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
+          {/* ESQUERDA (AZUL): ATRIBUTOS + INVENTÁRIOS */}
+          <div className="flex flex-col gap-2 min-h-0">
+             <div className="flex-shrink-0">
+               <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
+             </div>
+             <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
+                <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
+                <div className="flex flex-col gap-2 min-h-0">
+                  <div className="flex-1 min-h-0">
+                    <InventorySection title="RELÍQUIAS" slots={5} gridCols="grid-cols-5" icon={<Crown size={10}/>} color="amber" />
+                  </div>
+                  <div className="flex-1 min-h-0">
+                    <InventorySection title="CONSUMÍVEIS" slots={5} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
+                  </div>
+                </div>
+             </div>
           </div>
 
-          {/* 2. GRUPO INVENTÁRIOS (SUBIU - 40%) */}
-          <div className="grid grid-cols-2 gap-2 flex-[40] min-h-0">
-            <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
-            <div className="flex flex-col gap-2 min-h-0 h-full">
-              <div className="flex-1 min-h-0">
-                <InventorySection title="RELÍQUIAS" slots={5} gridCols="grid-cols-5" icon={<Crown size={10}/>} color="amber" />
-              </div>
-              <div className="flex-1 min-h-0">
-                <InventorySection title="CONSUMÍVEIS" slots={5} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
-              </div>
-            </div>
-          </div>
-
-          {/* 3. GRUPO EQUIPAMENTOS (DESCEU - 60%) */}
-          <div className="grid grid-cols-2 gap-2 flex-[60] min-h-0">
-            <ArmorCard equipment={status.equipment} onOpenManagement={() => setIsArmorModalOpen(true)} />
-            <ArsenalCard equipped={equippedWeapons} onOpenManagement={() => setIsWeaponModalOpen(true)} />
-          </div>
-        </div>
-
-        {/* COLUNA DIREITA */}
-        <div className="flex flex-col gap-2 min-h-0 h-full">
-          {/* GRUPO SUPERIOR (60%) */}
-          <div className="flex-[60] bg-[#030712] border border-slate-800 rounded-sm flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl min-h-0">
+          {/* DIREITA (AZUL): VISUALIZER CORE */}
+          <div className="bg-[#030712] border border-slate-800 rounded-sm flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl min-h-0">
              <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
              <div className="absolute inset-0 bg-gradient-to-b from-blue-500/[0.02] to-transparent pointer-events-none" />
              <div className="absolute top-0 left-0 w-full h-px bg-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-[scan_4s_linear_infinite]" />
@@ -169,12 +160,23 @@ const PlayerStatusWindow: React.FC<Props> = ({
              <div className="absolute bottom-3 left-3 w-3 h-3 border-b border-l border-slate-800" />
              <div className="absolute bottom-3 right-3 w-3 h-3 border-b border-r border-slate-800" />
           </div>
+        </div>
 
-          {/* GRUPO INFERIOR (40%) */}
-          <div className="flex-[40] min-h-0">
+        {/* BLOCO INFERIOR (GRUPO VERMELHO) - 40% DA ALTURA */}
+        <div className="flex-[40] grid grid-cols-2 gap-2 min-h-0">
+          
+          {/* ESQUERDA (VERMELHO): ARMADURAS + ARSENAL */}
+          <div className="grid grid-cols-2 gap-2 min-h-0">
+            <ArmorCard equipment={status.equipment} onOpenManagement={() => setIsArmorModalOpen(true)} />
+            <ArsenalCard equipped={equippedWeapons} onOpenManagement={() => setIsWeaponModalOpen(true)} />
+          </div>
+
+          {/* DIREITA (VERMELHO): EXÉRCITO DAS SOMBRAS */}
+          <div className="min-h-0">
             <InventorySection title="EXÉRCITO DAS SOMBRAS" slots={10} gridCols="grid-cols-5" icon={<Ghost size={10}/>} color="purple" />
           </div>
         </div>
+
       </div>
 
       {/* MODALS */}
