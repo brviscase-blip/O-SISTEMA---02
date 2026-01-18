@@ -62,7 +62,6 @@ export const ArmorModulationModal = ({ isOpen, onClose, status, onEquip, onUnequ
     return armorPieces.filter(p => {
       const matchesSearch = String(p.nome).toLowerCase().includes(search.toLowerCase());
       const matchesSlot = activeSlot === 'ALL' || p.slot === activeSlot;
-      // Filtramos por rank apenas o que é visível, mas a condição de uso é mais restrita
       const matchesRank = (rankWeights[p.rank] || 0) <= playerWeight;
       return matchesSearch && matchesSlot && matchesRank;
     }).sort((a, b) => (rankWeights[b.rank] || 0) - (rankWeights[a.rank] || 0));
@@ -167,28 +166,22 @@ const ArmorPieceCard = ({ piece, isEquipped, parentSet, playerLevel, completedTr
   const bonusAttr = piece.bonus ? Object.keys(piece.bonus)[0] : 'hp';
   const bonusVal = piece.bonus ? (Object.values(piece.bonus)[0] as any) : 0;
   
-  // DUAS CONDIÇÕES OBRIGATÓRIAS:
-  // 1. Nível Requerido (Herdado do Set ou próprio da peça)
   const requiredLevel = parentSet?.nivel_desbloqueio || piece.nivel_desbloqueio || 1;
   const isLevelLocked = playerLevel < requiredLevel;
 
-  // 2. Boss Trial Concluído (Herdado do Set ou próprio da peça)
   const bossId = parentSet?.boss_id || piece.boss_id;
   const needsTrial = Boolean(bossId);
   const isTrialCompleted = (completedTrials || []).includes(parentSet?.id || piece.id);
 
-  // Validação Final para Equipagem
   const canEquip = !isLevelLocked && (!needsTrial || isTrialCompleted);
 
   return (
     <div className={`relative group flex flex-col bg-[#030712] border-2 rounded-sm transition-all duration-300 overflow-hidden w-full aspect-[3/4] max-h-[420px] ${isLevelLocked ? 'grayscale border-slate-900' : `${theme.border} hover:scale-[1.02] hover:${theme.glow}`} shadow-2xl`}>
-      {/* Rank Badge & Heart Icon (Favorito) */}
       <div className={`absolute top-4 left-4 z-30 px-3 py-1 bg-black/80 border rounded-sm text-[11px] font-black tracking-widest ${theme.text} ${theme.border} ${theme.drop}`}>RANK {piece.rank}</div>
       <button className="absolute top-4 right-4 z-30 w-8 h-8 bg-black/60 border border-slate-800 rounded-full flex items-center justify-center text-slate-500 hover:text-rose-500 transition-colors">
         <Heart size={16} />
       </button>
 
-      {/* Visual Area */}
       <div className="relative w-full h-[60%] bg-slate-950 overflow-hidden">
         {piece.img ? (
           <img src={piece.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt="" />
@@ -199,17 +192,15 @@ const ArmorPieceCard = ({ piece, isEquipped, parentSet, playerLevel, completedTr
         )}
         <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-transparent to-transparent opacity-90" />
         
-        {/* CONDIÇÃO 2: Overlay de Trial de Boss (Prioridade visual após o nível) */}
+        {/* PROTOCOLO DE PROVA DE MÉRITO (ESTILO BÉLICO PADRONIZADO) */}
         {!isLevelLocked && needsTrial && !isTrialCompleted && (
-          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-blue-950/60 backdrop-blur-[2px]">
-            <Skull size={48} className="text-blue-400 animate-pulse mb-2 shadow-blue-500" />
-            <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] bg-black px-2 py-1 border border-blue-500/30">Prova de Mérito</span>
-            <p className="text-[8px] font-bold text-blue-300 uppercase mt-2 mb-4">Guardião não Subjugado</p>
-            <button onClick={(e) => { e.stopPropagation(); onStartTrial(); }} className="px-6 py-2 bg-blue-600 text-white text-[9px] font-black uppercase rounded-sm hover:bg-blue-500 transition-all shadow-lg">ENTRAR NO TRIAL</button>
+          <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-rose-950/40 backdrop-blur-[1px]">
+            <Skull size={48} className="text-rose-500 animate-pulse mb-2" />
+            <span className="text-[10px] font-black text-white uppercase tracking-[0.2em] bg-black px-2 py-1">Prova de Mérito</span>
+            <button onClick={(e) => { e.stopPropagation(); onStartTrial(); }} className="mt-4 px-6 py-2 bg-rose-600 text-white text-[9px] font-black uppercase rounded-sm hover:bg-rose-500 transition-all shadow-lg">ENTRAR NO TRIAL</button>
           </div>
         )}
 
-        {/* CONDIÇÃO 1: Overlay de Nível (Bloqueio Máximo) */}
         {isLevelLocked && (
           <div className="absolute inset-0 z-20 flex flex-col items-center justify-center bg-black/90">
             <LockKeyhole size={40} className="text-slate-600 mb-2" />
@@ -217,14 +208,12 @@ const ArmorPieceCard = ({ piece, isEquipped, parentSet, playerLevel, completedTr
           </div>
         )}
 
-        {/* Info Labels Inferiores no Visual */}
         <div className="absolute bottom-0 left-0 w-full p-4 z-20">
           <span className="text-[8px] font-black text-blue-500 uppercase tracking-widest bg-blue-500/10 px-1.5 py-0.5 rounded border border-blue-500/20 mb-2 inline-block">{piece.slot}</span>
           <h4 className={`text-sm font-black text-white uppercase truncate drop-shadow-lg italic ${theme.drop}`}>{piece.nome}</h4>
         </div>
       </div>
 
-      {/* Stats Area (Seguindo IMG_40 exatamente) */}
       <div className="flex-1 p-4 bg-[#030712] flex flex-col justify-between">
         <div className="space-y-4">
           <div className="flex items-center justify-between">
@@ -246,7 +235,6 @@ const ArmorPieceCard = ({ piece, isEquipped, parentSet, playerLevel, completedTr
           </div>
         </div>
 
-        {/* Action Button - Habilitado apenas se as 2 condições forem atendidas */}
         <button 
           disabled={!canEquip}
           onClick={isEquipped ? onUnequip : onEquip} 
