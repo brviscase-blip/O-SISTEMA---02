@@ -10,10 +10,11 @@ import PunishmentZone from './components/PunishmentZone';
 import EvolutionModal from './components/EvolutionModal';
 import RankSelector from './components/RankSelector';
 import NotificationSystem, { Notification, NotificationType } from './components/NotificationSystem';
-import { ViewType, PlayerStatus, Habit, Task, Vice, ItemRank } from './types';
+import { ViewType, PlayerStatus, ItemRank } from './types';
 
+// Fórmulas da "Espinha Dorsal"
 const getXPNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
-
+const getMaxDungeonHP = (lvl: number) => 100 + (lvl * 15);
 const getRankByLevel = (lvl: number): ItemRank => {
   if (lvl <= 100) return 'E';
   if (lvl <= 250) return 'D';
@@ -22,26 +23,19 @@ const getRankByLevel = (lvl: number): ItemRank => {
   if (lvl <= 850) return 'A';
   return 'S';
 };
-
-const getMaxHPByRank = (rank: ItemRank) => {
+const getMaxGlobalHPByRank = (rank: ItemRank) => {
   const map = { 'E': 100, 'D': 200, 'C': 300, 'B': 400, 'A': 500, 'S': 600 };
   return map[rank] || 100;
 };
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<ViewType>('SISTEMA');
-  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(true);
-  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
-  const [evolutionData, setEvolutionData] = useState<any>(null);
-  const [activeTrialWeapon, setActiveTrialWeapon] = useState<any | null>(null);
   const [selectedRank, setSelectedRank] = useState<ItemRank | null>(null);
-  
-  const [habits, setHabits] = useState<Habit[]>([]);
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [vices, setVices] = useState<Vice[]>([]);
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
+  const [evolutionData, setEvolutionData] = useState<any>(null);
+  const [history, setHistory] = useState<Notification[]>([]);
 
-  // Inicialização com as novas regras matemáticas
+  // Inicialização Calibrada
   useEffect(() => {
     if (!selectedRank) return;
     const rankKey = `rank_${selectedRank}_status`;
@@ -51,12 +45,15 @@ const App: React.FC = () => {
       setPlayerStatus(JSON.parse(saved));
     } else {
       const initialLvl = 1;
-      const maxGlobal = getMaxHPByRank(selectedRank);
+      const initialRank = getRankByLevel(initialLvl);
+      const maxGlobal = getMaxGlobalHPByRank(initialRank);
+      const maxDungeon = getMaxDungeonHP(initialLvl);
+      
       setPlayerStatus({
         level: initialLvl, xp: 0, maxXp: getXPNeeded(initialLvl),
-        rank: selectedRank, job: 'Iniciante', title: 'Leveling...',
+        rank: initialRank, job: 'Iniciante', title: 'LEVELING...',
         hp: maxGlobal, maxHp: maxGlobal, 
-        dungeon_hp: 100 + (initialLvl * 15), max_dungeon_hp: 100 + (initialLvl * 15),
+        dungeon_hp: maxDungeon, max_dungeon_hp: maxDungeon,
         mp: 50, maxMp: 50, gold: 0, statPoints: 0,
         stats: { strength: 10, agility: 10, intelligence: 10, perception: 10, vitality: 10 },
         equipment: {}, inventory: [], milestones: [],
@@ -65,43 +62,41 @@ const App: React.FC = () => {
     }
   }, [selectedRank]);
 
-  // Função handleUpdatePlayer simulando a RPC do Supabase
+  // Motor de Progressão e Sobrevivência
   const handleUpdatePlayer = (updates: Partial<PlayerStatus>) => {
     setPlayerStatus(prev => {
       if (!prev) return null;
       let next = { ...prev, ...updates };
 
-      // Se houver ganho de XP, verificar Level Up
+      // Lógica de Dano Percentual Global
+      if (updates.hp !== undefined && next.hp <= 0 && !next.isPunished) {
+        next.hp = 0;
+        next.isPunished = true;
+        addNotification("SISTEMA: VITALIDADE ZERADA. PUNIÇÃO IMINENTE.", "error");
+      }
+
+      // Lógica de XP e Level Up Automática
       if (updates.xp !== undefined && next.xp >= next.maxXp) {
         while (next.xp >= next.maxXp) {
           next.xp -= next.maxXp;
           next.level += 1;
           next.maxXp = getXPNeeded(next.level);
           next.statPoints += 5;
-          // Dungeon HP sobe +15 por nível
-          next.max_dungeon_hp = 100 + (next.level * 15);
-          next.dungeon_hp = next.max_dungeon_hp;
-          
-          // Verificar Mudança de Rank Automática
+          next.max_dungeon_hp = getMaxDungeonHP(next.level);
+          next.dungeon_hp = next.max_dungeon_hp; // Cura combate no level up
+
+          // Mudança de Rank Automática
           const newRank = getRankByLevel(next.level);
           if (newRank !== next.rank) {
             const oldRank = next.rank;
             next.rank = newRank;
-            next.maxHp = getMaxHPByRank(newRank);
-            next.hp = next.maxHp; // Cura total ao subir de Rank
-            setEvolutionData({ type: 'RANK', oldValue: oldRank, newValue: newRank, rewards: [`HP Global: ${next.maxHp}`, "Novas Dungeons Desbloqueadas"] });
+            next.maxHp = getMaxGlobalHPByRank(newRank);
+            next.hp = next.maxHp; // Cura global no rank up
+            setEvolutionData({ type: 'RANK', oldValue: oldRank, newValue: newRank, rewards: [`MAX HP GLOBAL: ${next.maxHp}`, "Desbloqueio de Novas Áreas"] });
           } else {
-            setEvolutionData({ type: 'LEVEL', oldValue: next.level - 1, newValue: next.level, rewards: ["+5 Atributos", "+15 HP Dungeon"] });
+            setEvolutionData({ type: 'LEVEL', oldValue: next.level - 1, newValue: next.level, rewards: ["+5 Atributos", `+15 HP Dungeon`] });
           }
         }
-      }
-
-      // Verificação de Punição (HP Global <= 0)
-      if (next.hp <= 0 && !next.isPunished) {
-        next.hp = 0;
-        next.isPunished = true;
-        next.punishmentStartTime = new Date().toISOString();
-        addNotification("SISTEMA: ENTRANDO NA ZONA DE PUNIÇÃO.", "error");
       }
 
       localStorage.setItem(`rank_${next.rank}_status`, JSON.stringify(next));
@@ -109,7 +104,6 @@ const App: React.FC = () => {
     });
   };
 
-  const [history, setHistory] = useState<Notification[]>([]);
   const addNotification = useCallback((message: string, type: NotificationType = 'info') => {
     const id = Math.random().toString(36).substr(2, 9);
     setHistory(prev => [...prev, { id, message, type }]);
@@ -119,19 +113,25 @@ const App: React.FC = () => {
   
   return (
     <div className="flex h-screen w-full bg-[#010307] text-slate-200 font-sans overflow-hidden">
-      <Sidebar activeView={activeView} onViewChange={setActiveView} isCollapsed={isSidebarCollapsed} onToggleCollapse={() => setIsSidebarCollapsed(!isSidebarCollapsed)} isMobileOpen={isMobileSidebarOpen} onMobileClose={() => setIsMobileSidebarOpen(false)} onExitRank={() => setSelectedRank(null)} />
+      <Sidebar activeView={activeView} onViewChange={setActiveView} isCollapsed={true} onToggleCollapse={() => {}} isMobileOpen={false} onMobileClose={() => {}} onExitRank={() => setSelectedRank(null)} />
       
       <main className="flex-1 flex flex-col min-w-0 bg-[#010307] relative h-full overflow-hidden">
-        <Header title={`SISTEMA - RANK ${selectedRank}`} history={history} onClearHistory={() => setHistory([])} onRemoveHistoryItem={(id) => setHistory(prev => prev.filter(n => n.id !== id))} onMenuClick={() => setIsMobileSidebarOpen(true)} />
+        <Header />
         
         <div className="flex-1 w-full overflow-hidden relative">
           {playerStatus?.isPunished ? (
-            <PunishmentZone status={playerStatus} onComplete={() => { handleUpdatePlayer({ isPunished: false, hp: Math.floor(playerStatus.maxHp * 0.1) }); addNotification("ACESSO RESTAURADO.", "success"); }} />
+            <PunishmentZone 
+              status={playerStatus} 
+              onComplete={() => {
+                handleUpdatePlayer({ isPunished: false, hp: Math.floor(playerStatus.maxHp * 0.1) });
+                addNotification("ACESSO RESTABELECIDO.", "success");
+              }}
+            />
           ) : (
             <>
-              {activeView === 'SISTEMA' && playerStatus && <PlayerStatusWindow status={playerStatus} onUpdateStat={(s) => playerStatus.statPoints > 0 && handleUpdatePlayer({ statPoints: playerStatus.statPoints - 1, stats: {...playerStatus.stats, [s]: playerStatus.stats[s] + 1}})} onEquipItem={(i) => handleUpdatePlayer({ equipment: {...playerStatus.equipment, [i.slot]: i} })} onUnequipItem={(s) => { const e = {...playerStatus.equipment}; delete e[s]; handleUpdatePlayer({ equipment: e }); }} onStartTrial={(w) => { setActiveTrialWeapon(w); setActiveView('DUNGEON'); }} habits={[]} tasks={[]} vices={[]} />}
-              {activeView === 'TAREFAS' && playerStatus && <TasksView playerStatus={playerStatus} onUpdatePlayer={handleUpdatePlayer} addNotification={addNotification} habits={habits} setHabits={setHabits} tasks={tasks} setTasks={setTasks} vices={vices} setVices={setVices} />}
-              {activeView === 'DUNGEON' && playerStatus && <DungeonView playerStatus={playerStatus} setPlayerStatus={setPlayerStatus as any} addNotification={addNotification} forcedTrialWeapon={activeTrialWeapon} onTrialEnd={() => setActiveTrialWeapon(null)} />}
+              {activeView === 'SISTEMA' && playerStatus && <PlayerStatusWindow status={playerStatus} onUpdateStat={(s) => playerStatus.statPoints > 0 && handleUpdatePlayer({ statPoints: playerStatus.statPoints - 1, stats: {...playerStatus.stats, [s]: playerStatus.stats[s] + 1}})} onEquipItem={() => {}} onUnequipItem={() => {}} onStartTrial={() => {}} habits={[]} tasks={[]} vices={[]} />}
+              {activeView === 'TAREFAS' && playerStatus && <TasksView playerStatus={playerStatus} onUpdatePlayer={handleUpdatePlayer} addNotification={addNotification} />}
+              {activeView === 'DUNGEON' && playerStatus && <DungeonView playerStatus={playerStatus} setPlayerStatus={setPlayerStatus as any} addNotification={addNotification} />}
               {activeView === 'TIMELINE' && playerStatus && <TimelineView milestones={playerStatus.milestones} currentRank={playerStatus.rank} />}
             </>
           )}
