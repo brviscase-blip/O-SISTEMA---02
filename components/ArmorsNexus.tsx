@@ -13,8 +13,37 @@ import { ItemRank, ArmorSet } from '../types';
 
 const STANDARD_SLOTS = ['CABEÇA', 'PEITORAL', 'MÃOS', 'PERNAS', 'PÉS', 'ANEL'];
 
-const VANTAGEM_OPTIONS = ['NENHUMA', 'SOM (RUÍDOS)', 'CORTE', 'ATRITO', 'PERFURAÇÃO', 'TERRENO IRREGULAR', 'INSTABILIDADE'];
-const FRAQUEZA_OPTIONS = ['NENHUMA', 'LUZ (CLARÃO)', 'IMPACTO', 'FOGO', 'GELO', 'LAMA', 'MALDIÇÃO'];
+const VANTAGEM_OPTIONS = [
+  'NENHUMA', 
+  'MOVIMENTO', 
+  'IMPACTO', 
+  'DEFESA FÍSICA', 
+  'QUEDA', 
+  'VELOCIDADE', 
+  'EXAUSTÃO',
+  'SOM (RUÍDOS)', 
+  'CORTE', 
+  'ATRITO', 
+  'PERFURAÇÃO', 
+  'TERRENO IRREGULAR', 
+  'INSTABILIDADE'
+];
+
+const FRAQUEZA_OPTIONS = [
+  'NENHUMA', 
+  'ATAQUE SURPRESA', 
+  'PERFURAÇÃO', 
+  'ELETRICIDADE', 
+  'CORTES LATERAIS', 
+  'ARMADILHAS', 
+  'MAGIA BRANCA',
+  'LUZ (CLARÃO)', 
+  'IMPACTO', 
+  'FOGO', 
+  'GELO', 
+  'LAMA', 
+  'MALDIÇÃO'
+];
 
 // Mapeamento bidirecional para consistência técnica
 const UI_TO_DB_STAT: Record<string, string> = {
