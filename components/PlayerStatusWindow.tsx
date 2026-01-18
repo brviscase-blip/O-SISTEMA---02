@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Settings, BarChart3, Package, Ghost, FlaskConical, Crown } from 'lucide-react';
+import { Activity, Settings, BarChart3, Package, Ghost, FlaskConical, Crown, Settings2 } from 'lucide-react';
 import { PlayerStatus, EquipmentItem } from '../types';
 import AttributeCard from './AttributeCard';
 import ArmorCard from './ArmorCard';
@@ -55,7 +55,7 @@ const PlayerStatusWindow: React.FC<Props> = ({
   const xpPercent = (status.xp / status.maxXp) * 100;
 
   return (
-    <div className="h-full w-full flex flex-col gap-2 p-2 bg-[#010307] select-none overflow-hidden">
+    <div className="h-full w-full flex flex-col gap-2 p-2 bg-[#010307] select-none overflow-hidden font-sans">
       {/* MONITOR VITAL GLOBAL (HEADER) */}
       <div className="flex-shrink-0 bg-[#030712] border border-slate-800 p-4 rounded-sm shadow-2xl flex flex-col gap-4 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-4 opacity-20 pointer-events-none">
@@ -114,33 +114,28 @@ const PlayerStatusWindow: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* NOVO DASHBOARD DE MATRIZ (12 COLUNAS) */}
+      {/* DASHBOARD DE MATRIZ (12 COLUNAS) */}
       <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
         
         {/* BLOCO OPERACIONAL (COLUNAS 1-8) */}
-        <div className="col-span-8 grid grid-rows-[auto_1fr_1.2fr] gap-2 min-h-0">
+        {/* Row setup: auto (attributes), 1fr (armors/arsenal), 1fr (inventory/consumables) */}
+        <div className="col-span-8 grid grid-rows-[auto_1fr_1fr] gap-2 min-h-0">
           
           {/* TOPO: Atributos Expandidos */}
           <div className="row-span-1">
             <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
           </div>
 
-          {/* MEIO: Armaduras e Arsenal (Lado a Lado) */}
+          {/* MEIO: Armaduras e Arsenal (Identidade 1fr) */}
           <div className="grid grid-cols-2 gap-2 min-h-0">
             <ArmorCard equipment={status.equipment} onOpenManagement={() => setIsArmorModalOpen(true)} />
             <ArsenalCard equipped={equippedWeapons} onOpenManagement={() => setIsWeaponModalOpen(true)} />
           </div>
 
-          {/* BASE: Complexo de Inventários */}
+          {/* BASE: Inventário Geral e Consumíveis (Identidade 1fr - Simétricos aos de cima) */}
           <div className="grid grid-cols-2 gap-2 min-h-0">
-            {/* Inventário Geral (10 slots - 2x5) */}
-            <InventorySection title="Inventário Geral" slots={10} gridCols="grid-cols-5" icon={<Package size={12}/>} />
-            
-            {/* Stack de Consumíveis e Relíquias */}
-            <div className="grid grid-rows-2 gap-2">
-              <InventorySection title="Consumíveis" slots={4} gridCols="grid-cols-2" icon={<FlaskConical size={12}/>} small />
-              <InventorySection title="Relíquias" slots={4} gridCols="grid-cols-2" icon={<Crown size={12}/>} small />
-            </div>
+            <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
+            <InventorySection title="CONSUMÍVEIS" slots={10} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
           </div>
         </div>
 
@@ -205,21 +200,41 @@ const PlayerStatusWindow: React.FC<Props> = ({
   );
 };
 
-const InventorySection = ({ title, slots, gridCols, icon, small = false }: any) => (
-  <div className="bg-[#030712] border border-slate-800 rounded-sm flex flex-col p-3 min-h-0">
-    <div className={`flex items-center gap-2 mb-2 border-b border-slate-800/50 ${small ? 'pb-1' : 'pb-2'}`}>
-      <span className="text-blue-500">{icon}</span>
-      <h3 className="text-[9px] font-black uppercase tracking-[0.2em] text-slate-400">{title}</h3>
-    </div>
-    <div className={`flex-1 grid ${gridCols} gap-1.5 min-h-0`}>
-      {Array.from({ length: slots }).map((_, i) => (
-        <div key={i} className="aspect-square bg-slate-950/50 border border-slate-800/40 rounded-sm flex items-center justify-center group hover:border-blue-500/30 transition-colors">
-          <div className="w-1 h-1 rounded-full bg-slate-900 group-hover:bg-blue-900 transition-colors" />
+const InventorySection = ({ title, slots, gridCols, icon, color }: any) => {
+  const colorMap: any = {
+    blue: 'text-blue-400 border-blue-500/60 hover:text-white',
+    emerald: 'text-emerald-400 border-emerald-500/60 hover:text-white',
+    purple: 'text-purple-400 border-purple-500/60 hover:text-white'
+  };
+
+  return (
+    <div className="h-full bg-[#030712] border border-slate-800 flex flex-col rounded-sm shadow-xl min-h-0 overflow-hidden">
+      {/* Identical Header Pattern to Armor/Arsenal Cards */}
+      <div className="p-1.5 bg-black/40 border-b border-slate-800 flex items-center justify-between h-[30px] flex-shrink-0">
+        <div className="flex items-center gap-2">
+          <span className={colorMap[color].split(' ')[0]}>{icon}</span>
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">{title}</h3>
         </div>
-      ))}
+        <button className={`p-1 transition-all ${colorMap[color]}`}>
+          <Settings2 size={12} />
+        </button>
+      </div>
+
+      {/* Grid Area */}
+      <div className={`p-1 flex-1 grid ${gridCols} gap-1 min-h-0`}>
+        {Array.from({ length: slots }).map((_, i) => (
+          <div 
+            key={i} 
+            className="aspect-square bg-slate-950 border border-slate-800/40 rounded-sm flex items-center justify-center group hover:border-blue-500/30 transition-colors relative overflow-hidden"
+          >
+            <div className="w-1 h-1 rounded-full bg-slate-900 group-hover:bg-blue-900 transition-colors" />
+            <div className="absolute inset-0 opacity-0 group-hover:opacity-5 bg-blue-500 transition-opacity pointer-events-none" />
+          </div>
+        ))}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 const StatBox = ({ label, value, color }: any) => (
   <div className="flex flex-col items-end leading-none">
