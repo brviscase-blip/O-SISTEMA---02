@@ -78,7 +78,6 @@ const ArmorsNexus: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Erro Nexus Armaduras:", err);
-      // Se o erro for cache, informa o usuário para rodar o SQL
       if (err.message?.includes('column')) {
         alert("ERRO DE SCHEMA: Colunas novas não detectadas. Verifique se você rodou o script SQL de ALTER TABLE no Supabase.");
       }
@@ -246,13 +245,13 @@ const ArmorsNexus: React.FC = () => {
            </div>
 
            <div className="flex-1 overflow-y-auto p-12 custom-scrollbar">
-              <div className="max-w-6xl mx-auto space-y-12 pb-20">
+              <div className="max-w-[1440px] mx-auto space-y-12 pb-20 px-4">
                  <div className="bg-slate-900/20 border border-slate-800 p-6 rounded-sm">
                     <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-3 flex items-center gap-2"><Info size={14} /> Memória do Conjunto</h4>
                     <p className="text-sm text-slate-400 italic leading-relaxed">{selectedSet.descricao_lore}</p>
                  </div>
 
-                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {STANDARD_SLOTS.map(slotName => (
                       <PieceSlotForm 
                         key={`${selectedSet.id}-${slotName}`} 
@@ -354,79 +353,79 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
   const theme = getRankClass(set.rank);
 
   return (
-    <div className={`p-8 bg-black/40 border rounded-sm transition-all flex flex-col gap-6 relative group ${existingPiece ? 'border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.05)]' : 'border-slate-800 hover:border-slate-700'}`}>
-      <div className="flex items-center justify-between border-b border-slate-800/60 pb-4">
+    <div className={`p-6 bg-black/40 border rounded-sm transition-all flex flex-col gap-4 relative group ${existingPiece ? 'border-emerald-500/20 shadow-[0_0_30px_rgba(16,185,129,0.05)]' : 'border-slate-800 hover:border-slate-700'}`}>
+      <div className="flex items-center justify-between border-b border-slate-800/60 pb-3">
         <div className="flex items-center gap-3">
-           <div className={`w-3 h-3 rounded-full ${existingPiece ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
-           <span className="text-[11px] font-black text-white uppercase tracking-[0.3em]">{slotName}</span>
+           <div className={`w-2 h-2 rounded-full ${existingPiece ? 'bg-emerald-500 animate-pulse' : 'bg-slate-700'}`} />
+           <span className="text-[10px] font-black text-white uppercase tracking-[0.3em]">{slotName}</span>
         </div>
-        {existingPiece && <ShieldCheck size={16} className="text-emerald-500" />}
+        {existingPiece && <ShieldCheck size={14} className="text-emerald-500" />}
       </div>
 
-      <div className="flex gap-6">
-         <div onClick={() => !isUploading && fileInputRef.current?.click()} className="w-24 h-24 bg-slate-950 border border-slate-800 rounded flex items-center justify-center cursor-pointer hover:border-blue-500 transition-all overflow-hidden shrink-0 shadow-inner group/img">
+      <div className="flex gap-4">
+         <div onClick={() => !isUploading && fileInputRef.current?.click()} className="w-20 h-20 bg-slate-950 border border-slate-800 rounded flex items-center justify-center cursor-pointer hover:border-blue-500 transition-all overflow-hidden shrink-0 shadow-inner group/img">
            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-           {formData.img ? <img src={formData.img} className="w-full h-full object-cover" /> : <Upload size={28} className="text-slate-800 group-hover/img:text-slate-500 transition-colors" />}
+           {formData.img ? <img src={formData.img} className="w-full h-full object-cover" /> : <Upload size={24} className="text-slate-800 group-hover/img:text-slate-500 transition-colors" />}
          </div>
-         <div className="flex-1 space-y-3">
-            <input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="w-full bg-transparent border-b border-slate-800 text-sm font-black text-white uppercase outline-none focus:border-blue-500 transition-colors py-2" placeholder="NOME DA PEÇA" />
-            <div className="flex items-center gap-3">
-               <span className={`text-[10px] font-black px-3 py-1 rounded border ${theme.border} text-white`}>{set.rank}</span>
-               <span className="text-[9px] font-bold text-slate-600 uppercase tracking-widest italic">MASTER CORE SYNC</span>
+         <div className="flex-1 space-y-2">
+            <input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="w-full bg-transparent border-b border-slate-800 text-[11px] font-black text-white uppercase outline-none focus:border-blue-500 transition-colors py-1" placeholder="NOME DA PEÇA" />
+            <div className="flex items-center gap-2">
+               <span className={`text-[8px] font-black px-2 py-0.5 rounded border ${theme.border} text-white`}>{set.rank}</span>
+               <span className="text-[7px] font-bold text-slate-600 uppercase tracking-widest italic">SYNC ACTIVE</span>
             </div>
          </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
-         <div className="space-y-2">
-           <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">ETIQUETA BÔNUS</label>
-           <input value={formData.bonus_label} onChange={e => setFormData({...formData, bonus_label: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[11px] text-emerald-400 font-bold px-4 py-3 rounded-sm outline-none focus:border-emerald-500 shadow-inner" placeholder="+25 Força" />
+      <div className="grid grid-cols-2 gap-3">
+         <div className="space-y-1">
+           <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-1">ETIQUETA</label>
+           <input value={formData.bonus_label} onChange={e => setFormData({...formData, bonus_label: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[10px] text-emerald-400 font-bold px-3 py-2 rounded-sm outline-none focus:border-emerald-500 shadow-inner" placeholder="+25 Força" />
          </div>
-         <div className="space-y-2">
-           <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">MODIFICADOR TÉCNICO</label>
+         <div className="space-y-1">
+           <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-1">VALOR</label>
            <div className="flex bg-slate-950 border border-slate-800 rounded-sm overflow-hidden shadow-inner">
-              <input type="number" value={formData.bonus_value as any} onChange={e => setFormData({...formData, bonus_value: Number(e.target.value)})} className="w-1/2 bg-transparent text-xs text-white px-4 py-3 outline-none font-bold tabular-nums" />
-              <select value={formData.bonus_target} onChange={e => setFormData({...formData, bonus_target: e.target.value})} className="w-1/2 bg-slate-900 text-[10px] text-slate-400 font-black px-2 outline-none uppercase border-l border-slate-800 cursor-pointer">
+              <input type="number" value={formData.bonus_value as any} onChange={e => setFormData({...formData, bonus_value: Number(e.target.value)})} className="w-1/2 bg-transparent text-[10px] text-white px-2 py-2 outline-none font-bold tabular-nums" />
+              <select value={formData.bonus_target} onChange={e => setFormData({...formData, bonus_target: e.target.value})} className="w-1/2 bg-slate-900 text-[8px] text-slate-500 font-black px-1 outline-none uppercase border-l border-slate-800 cursor-pointer">
                 {['HP','MP','FORÇA','AGILIDADE','INTELIGÊNCIA','VITALIDADE','PERCEPÇÃO'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
            </div>
          </div>
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
-         <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">VANTAGEM</label>
-            <select value={formData.vantagem_defensiva} onChange={e => setFormData({...formData, vantagem_defensiva: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[10px] text-emerald-500 px-4 py-3 rounded-sm outline-none uppercase font-black shadow-inner cursor-pointer hover:border-emerald-500/50 transition-colors">
+      <div className="grid grid-cols-2 gap-3">
+         <div className="space-y-1">
+            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-1">VANTAGEM</label>
+            <select value={formData.vantagem_defensiva} onChange={e => setFormData({...formData, vantagem_defensiva: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[8px] text-emerald-500 px-2 py-2 rounded-sm outline-none uppercase font-black shadow-inner cursor-pointer hover:border-emerald-500/50 transition-colors">
               {VANTAGEM_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
          </div>
-         <div className="space-y-2">
-            <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">FRAQUEZA</label>
-            <select value={formData.fraqueza_defensiva} onChange={e => setFormData({...formData, fraqueza_defensiva: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[10px] text-rose-500 px-4 py-3 rounded-sm outline-none uppercase font-black shadow-inner cursor-pointer hover:border-rose-500/50 transition-colors">
+         <div className="space-y-1">
+            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-1">FRAQUEZA</label>
+            <select value={formData.fraqueza_defensiva} onChange={e => setFormData({...formData, fraqueza_defensiva: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[8px] text-rose-500 px-2 py-2 rounded-sm outline-none uppercase font-black shadow-inner cursor-pointer hover:border-rose-500/50 transition-colors">
               {FRAQUEZA_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
          </div>
       </div>
 
-      <div className="space-y-2">
-         <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-           <ScrollText size={12} className="text-blue-500" /> DESCRIÇÃO DA PEÇA
+      <div className="space-y-1">
+         <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-1 flex items-center gap-1">
+           <ScrollText size={10} className="text-blue-500" /> PROPRIEDADES
          </label>
          <textarea 
            value={formData.descricao_lore} 
            onChange={e => setFormData({...formData, descricao_lore: e.target.value})}
-           placeholder="Descreva as propriedades místicas desta peça específica..."
-           className="w-full bg-slate-950 border border-slate-800 px-4 py-3 text-[11px] text-slate-400 outline-none focus:border-blue-500 placeholder:text-slate-800 font-bold transition-all min-h-[80px] resize-none custom-scrollbar shadow-inner leading-relaxed rounded-sm"
+           placeholder="Propriedades místicas..."
+           className="w-full bg-slate-950 border border-slate-800 px-3 py-2 text-[10px] text-slate-400 outline-none focus:border-blue-500 placeholder:text-slate-900 font-bold transition-all min-h-[60px] resize-none custom-scrollbar shadow-inner leading-relaxed rounded-sm"
          />
       </div>
 
       <button 
         onClick={handleSave}
         disabled={isSaving || isUploading}
-        className={`w-full py-4 ${existingPiece ? 'bg-slate-900 border-emerald-500/30 text-emerald-500' : 'bg-blue-600 text-white'} border rounded-sm text-[11px] font-black uppercase tracking-[0.3em] transition-all hover:brightness-125 flex items-center justify-center gap-3 active:scale-95 shadow-xl`}
+        className={`w-full py-3 ${existingPiece ? 'bg-slate-900 border-emerald-500/30 text-emerald-500' : 'bg-blue-600 text-white'} border rounded-sm text-[9px] font-black uppercase tracking-[0.2em] transition-all hover:brightness-125 flex items-center justify-center gap-2 active:scale-95 shadow-xl`}
       >
-        {isSaving ? <Loader2 className="animate-spin" size={16} /> : <HardDrive size={16} />}
-        {existingPiece ? 'ATUALIZAR BANCO DE DADOS' : 'FORJAR ARTEFATO'}
+        {isSaving ? <Loader2 className="animate-spin" size={12} /> : <HardDrive size={12} />}
+        {existingPiece ? 'ATUALIZAR' : 'FORJAR'}
       </button>
     </div>
   );
