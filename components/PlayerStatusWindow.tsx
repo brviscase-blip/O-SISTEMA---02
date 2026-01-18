@@ -131,7 +131,14 @@ const PlayerStatusWindow: React.FC<Props> = ({
           {/* GRUPO VERMELHO (INFERIOR - 40%) */}
           <div className="grid grid-cols-2 gap-2 flex-[40] min-h-0">
             <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
-            <InventorySection title="CONSUMÍVEIS" slots={10} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
+            <div className="flex flex-col gap-2 min-h-0 h-full">
+              <div className="flex-1 min-h-0">
+                <InventorySection title="CONSUMÍVEIS" slots={5} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
+              </div>
+              <div className="flex-1 min-h-0">
+                <InventorySection title="RELÍQUIAS" slots={5} gridCols="grid-cols-5" icon={<Crown size={10}/>} color="amber" />
+              </div>
+            </div>
           </div>
         </div>
 
@@ -216,6 +223,7 @@ const InventorySection = ({ title, slots, gridCols, icon, color }: any) => {
   const colorMap: any = {
     blue: 'text-blue-400 border-blue-500/60 hover:text-white',
     emerald: 'text-emerald-400 border-emerald-500/60 hover:text-white',
+    amber: 'text-amber-400 border-amber-500/60 hover:text-white',
     purple: 'text-purple-400 border-purple-500/60 hover:text-white'
   };
 
