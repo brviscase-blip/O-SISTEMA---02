@@ -114,10 +114,10 @@ const PlayerStatusWindow: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* DASHBOARD DE MATRIZ PRINCIPAL - DIVISÃO 55% / 45% */}
-      <div className="flex-1 grid grid-cols-[55fr_45fr] gap-2 min-h-0">
+      {/* DASHBOARD DE MATRIZ PRINCIPAL - DIVISÃO EQUILIBRADA 50% / 50% */}
+      <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
         
-        {/* GRUPO VERMELHO (55% - LADO ESQUERDO) */}
+        {/* GRUPO VERMELHO (50% - LADO ESQUERDO) */}
         <div className="flex flex-col gap-2 min-h-0">
           {/* Operações de Combate */}
           <div className="flex flex-col gap-2 flex-1 min-h-0">
@@ -135,9 +135,9 @@ const PlayerStatusWindow: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* GRUPO AZUL (45% - LADO DIREITO) */}
+        {/* GRUPO AZUL (50% - LADO DIREITO) */}
         <div className="flex flex-col gap-2 min-h-0">
-          {/* Mega Core Placeholder (Ocupa o topo dos 45%) */}
+          {/* Mega Core Placeholder (Ocupa o topo dos 50%) */}
           <div className="flex-1 bg-[#030712] border border-slate-800 rounded-sm flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl">
              <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
              <div className="absolute inset-0 bg-gradient-to-b from-blue-500/[0.02] to-transparent pointer-events-none" />
