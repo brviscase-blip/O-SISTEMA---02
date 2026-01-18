@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Settings, BarChart3, Package, Ghost, FlaskConical, Crown, Settings2 } from 'lucide-react';
+import { Activity, Settings, BarChart3, Package, Ghost, FlaskConical, Crown, Settings2, Box, Database, Lock } from 'lucide-react';
 import { PlayerStatus, EquipmentItem } from '../types';
 import AttributeCard from './AttributeCard';
 import ArmorCard from './ArmorCard';
@@ -118,21 +118,16 @@ const PlayerStatusWindow: React.FC<Props> = ({
       <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
         
         {/* BLOCO OPERACIONAL (COLUNAS 1-8) */}
-        {/* Row setup: auto (attributes), 1fr (armors/arsenal), 1fr (inventory/consumables) */}
         <div className="col-span-8 grid grid-rows-[auto_1fr_1fr] gap-2 min-h-0">
-          
-          {/* TOPO: Atributos Expandidos */}
           <div className="row-span-1">
             <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
           </div>
 
-          {/* MEIO: Armaduras e Arsenal (Identidade 1fr) */}
           <div className="grid grid-cols-2 gap-2 min-h-0">
             <ArmorCard equipment={status.equipment} onOpenManagement={() => setIsArmorModalOpen(true)} />
             <ArsenalCard equipped={equippedWeapons} onOpenManagement={() => setIsWeaponModalOpen(true)} />
           </div>
 
-          {/* BASE: Inventário Geral e Consumíveis (Identidade 1fr - Simétricos aos de cima) */}
           <div className="grid grid-cols-2 gap-2 min-h-0">
             <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
             <InventorySection title="CONSUMÍVEIS" slots={10} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
@@ -140,27 +135,24 @@ const PlayerStatusWindow: React.FC<Props> = ({
         </div>
 
         {/* BLOCO DE COMANDO (COLUNAS 9-12) */}
-        <div className="col-span-4 grid grid-rows-[1.5fr_1fr] gap-2 min-h-0">
+        <div className="col-span-4 grid grid-rows-[auto_1fr_1fr] gap-2 min-h-0">
           
-          {/* PLACEHOLDER SUPERIOR */}
-          <div className="bg-[#030712] border border-slate-800 rounded-sm p-4 flex flex-col items-center justify-center text-center opacity-40 relative overflow-hidden">
+          {/* LINHA 1: VISUALIZER CORE (ALINHADO AOS ATRIBUTOS) */}
+          <div className="bg-[#030712] border border-slate-800 rounded-sm p-4 flex flex-col items-center justify-center text-center opacity-40 relative overflow-hidden h-[180px]">
              <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-             <BarChart3 size={48} className="text-slate-800 mb-4" />
-             <h3 className="text-sm font-black uppercase tracking-[0.4em]">Visualizer_Core</h3>
-             <p className="text-[8px] font-bold text-slate-600 uppercase mt-2 tracking-widest italic">Aguardando Input Biométrico</p>
+             <BarChart3 size={32} className="text-slate-800 mb-2" />
+             <h3 className="text-[10px] font-black uppercase tracking-[0.4em]">Visualizer_Core</h3>
+             <p className="text-[7px] font-bold text-slate-600 uppercase mt-1 tracking-widest italic">Aguardando Input Biométrico</p>
           </div>
 
-          {/* EXÉRCITO DAS SOMBRAS */}
-          <div className="bg-[#030712] border border-slate-800 rounded-sm p-4 flex flex-col min-h-0">
-            <div className="flex items-center gap-2 mb-4 border-b border-slate-800 pb-2">
-               <Ghost size={14} className="text-blue-500" />
-               <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Exército das Sombras</h3>
-            </div>
-            <div className="flex-1 flex flex-col items-center justify-center opacity-20 text-center">
-               <Ghost size={32} className="text-slate-700 mb-2" />
-               <span className="text-[9px] font-black uppercase tracking-widest italic">Nenhuma Sombra Sobjugada</span>
-            </div>
+          {/* LINHA 2: CANAL DE SINCRONIZAÇÃO (ALINHADO ÀS ARMADURAS - PLACEHOLDER) */}
+          <div className="bg-[#030712] border border-slate-800 rounded-sm flex flex-col items-center justify-center opacity-10 border-dashed transition-all">
+             <Lock size={20} className="text-slate-700 mb-2" />
+             <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-700">Canal Restrito</span>
           </div>
+
+          {/* LINHA 3: EXÉRCITO DAS SOMBRAS (AGORA NO LUGAR DO SHADOW STORAGE) */}
+          <InventorySection title="EXÉRCITO DAS SOMBRAS" slots={10} gridCols="grid-cols-5" icon={<Ghost size={10}/>} color="purple" />
         </div>
       </div>
 
@@ -209,7 +201,7 @@ const InventorySection = ({ title, slots, gridCols, icon, color }: any) => {
 
   return (
     <div className="h-full bg-[#030712] border border-slate-800 flex flex-col rounded-sm shadow-xl min-h-0 overflow-hidden">
-      {/* Identical Header Pattern to Armor/Arsenal Cards */}
+      {/* Identical Header Pattern (30px Height) */}
       <div className="p-1.5 bg-black/40 border-b border-slate-800 flex items-center justify-between h-[30px] flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className={colorMap[color].split(' ')[0]}>{icon}</span>
@@ -220,7 +212,7 @@ const InventorySection = ({ title, slots, gridCols, icon, color }: any) => {
         </button>
       </div>
 
-      {/* Grid Area */}
+      {/* Identical Grid Content Area */}
       <div className={`p-1 flex-1 grid ${gridCols} gap-1 min-h-0`}>
         {Array.from({ length: slots }).map((_, i) => (
           <div 
