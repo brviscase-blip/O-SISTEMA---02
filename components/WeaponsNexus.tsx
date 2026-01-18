@@ -4,7 +4,7 @@ import {
   Sword, Trash2, Save, Loader2, Plus, Edit3, 
   Zap, Dumbbell, Brain, Target, ArrowRight,
   Upload, CheckCircle2, ImageOff, Repeat,
-  ChevronDown, ArrowLeftRight, Skull, ShieldAlert, X
+  ChevronDown, ArrowLeftRight, Skull, ShieldAlert, X, MapPin
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
 
@@ -50,6 +50,7 @@ const WeaponsNexus: React.FC = () => {
     nome: '', rank: 'E', dano_base: 0, atributo_principal: 'FORÇA',
     efeito_especial: '', desc_efeito: '', nivel_desbloqueio: 1,
     lvl_min: 1, lvl_max: 10, material_upgrade: 'Pedra de Mana Comum',
+    territorio: '', // Novo campo adicionado
     img: '', historia: '', boss_id: '', desafio_concluido: false
   };
 
@@ -119,7 +120,8 @@ const WeaponsNexus: React.FC = () => {
         lvl_min: Number(cleanData.lvl_min) || 1,
         lvl_max: Number(cleanData.lvl_max) || 10,
         desafio_concluido: Boolean(cleanData.desafio_concluido),
-        historia: String(cleanData.historia || '')
+        historia: String(cleanData.historia || ''),
+        territorio: String(cleanData.territorio || '').trim() // Garantindo persistência do território
       };
       if (editingId) {
         await client.from('armas').update(payload).eq('id', editingId);
@@ -225,7 +227,12 @@ const WeaponsNexus: React.FC = () => {
                 <div className="md:col-span-2"><FormGroup label="LEVEL MÁXIMO" type="number" value={formData.lvl_max} onChange={(v:any) => setFormData({...formData, lvl_max:v})} /></div>
                 <div className="md:col-span-2"><FormGroup label="NV. DESBLOQUEIO" type="number" value={formData.nivel_desbloqueio} onChange={(v:any) => setFormData({...formData, nivel_desbloqueio:v})} /></div>
                 <div className="md:col-span-3"><FormGroup label="MATERIAL DE REFINO" value={formData.material_upgrade} onChange={(v:any) => setFormData({...formData, material_upgrade:v})} /></div>
-                <div className="md:col-span-3 flex flex-col gap-2">
+                {/* Novo Campo: TERRITÓRIO */}
+                <div className="md:col-span-3"><FormGroup label="TERRITÓRIO (LOCAL DE COLETA)" value={formData.territorio} onChange={(v:any) => setFormData({...formData, territorio:v})} placeholder="Ex: Montanhas Rochosas / Nível 4" /></div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 border-t border-slate-800/50 pt-8">
+                 <div className="md:col-span-3 flex flex-col gap-2">
                    <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">UPLOAD VISUAL (.PNG)</label>
                    <div onClick={() => !isUploading && fileInputRef.current?.click()} className={`w-full h-10 bg-slate-950 border border-slate-800 rounded-sm flex items-center px-4 cursor-pointer hover:border-blue-500 transition-all ${formData.img ? 'border-emerald-500/50' : ''}`}>
                       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
@@ -235,10 +242,7 @@ const WeaponsNexus: React.FC = () => {
                       </div>
                    </div>
                 </div>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-12 gap-5 border-t border-slate-800/50 pt-8">
-                 <div className="md:col-span-4"><FormGroup label="ID DO BOSS (TRIAL)" value={formData.boss_id} onChange={(v:any) => setFormData({...formData, boss_id:v})} placeholder="Ex: boss-lycan-01" /></div>
+                 <div className="md:col-span-3"><FormGroup label="ID DO BOSS (TRIAL)" value={formData.boss_id} onChange={(v:any) => setFormData({...formData, boss_id:v})} placeholder="Ex: boss-lycan-01" /></div>
                  <div className="md:col-span-2 flex items-center gap-2 pt-6">
                     <label className="flex items-center gap-3 cursor-pointer group">
                        <input type="checkbox" checked={Boolean(formData.desafio_concluido)} onChange={e => setFormData({...formData, desafio_concluido: e.target.checked})} className="hidden" />
@@ -248,8 +252,8 @@ const WeaponsNexus: React.FC = () => {
                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest group-hover:text-slate-300">Concluído</span>
                     </label>
                  </div>
-                 <div className="md:col-span-3"><FormGroup label="EFEITO PASSIVO" value={formData.efeito_especial} onChange={(v:any) => setFormData({...formData, efeito_especial:v})} placeholder="Nome da Habilidade" /></div>
-                 <div className="md:col-span-3"><FormGroup label="DESCRIÇÃO DO EFEITO" value={formData.desc_efeito} onChange={(v:any) => setFormData({...formData, desc_efeito:v})} placeholder="Detalhes técnicos..." /></div>
+                 <div className="md:col-span-2"><FormGroup label="EFEITO PASSIVO" value={formData.efeito_especial} onChange={(v:any) => setFormData({...formData, efeito_especial:v})} placeholder="Nome da Habilidade" /></div>
+                 <div className="md:col-span-2"><FormGroup label="DESCRIÇÃO DO EFEITO" value={formData.desc_efeito} onChange={(v:any) => setFormData({...formData, desc_efeito:v})} placeholder="Detalhes técnicos..." /></div>
               </div>
 
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 border-t border-slate-800/50 pt-8">
@@ -270,12 +274,13 @@ const WeaponsNexus: React.FC = () => {
 
           <div className="space-y-4">
              <div className="bg-slate-900/30 border border-slate-800/50 h-10 flex items-center px-6 rounded-sm w-full font-black text-[9px] text-slate-500 uppercase tracking-widest">
-                <div className="w-[20%]">ARTEFATO</div>
-                <div className="w-[15%] text-center">RANK/ATTR</div>
+                <div className="w-[18%]">ARTEFATO</div>
+                <div className="w-[12%] text-center">RANK/ATTR</div>
                 <div className="w-[10%] text-center">DANO (INI)</div>
+                <div className="w-[12%] text-center">LOCALIZAÇÃO</div>
                 <div className="w-[10%] text-center">TRIAL BOSS</div>
-                <div className="w-[15%] text-center">LEVEL (MÍN X MÁX)</div>
-                <div className="w-[20%]">EFEITO PASSIVO</div>
+                <div className="w-[13%] text-center">LEVEL (MÍN X MÁX)</div>
+                <div className="w-[15%]">EFEITO PASSIVO</div>
                 <div className="w-[10%] text-right pr-4">AÇÕES</div>
              </div>
 
@@ -286,17 +291,17 @@ const WeaponsNexus: React.FC = () => {
                       <div key={item.id} className="bg-[#030712] border border-slate-800 h-24 flex items-center px-6 group hover:border-slate-600 transition-all relative overflow-hidden rounded-sm w-full shadow-lg">
                         <div className={`absolute left-0 top-0 h-full w-1 ${theme.border}`} />
                         
-                        <div className="w-[20%] flex items-center gap-4">
+                        <div className="w-[18%] flex items-center gap-4">
                            <div className="w-14 h-14 bg-slate-950 border border-slate-800 rounded-sm flex items-center justify-center overflow-hidden flex-shrink-0">
                               {item.img ? <img src={item.img} className="w-full h-full object-cover" alt="" /> : <Sword size={24} className="text-slate-800" />}
                            </div>
                            <div className="flex flex-col min-w-0">
                               <h4 className="text-[12px] font-black text-white uppercase italic tracking-tighter truncate">{item.nome}</h4>
-                              <span className="text-[8px] font-bold text-slate-600 uppercase mt-1">{item.material_upgrade}</span>
+                              <span className="text-[8px] font-bold text-slate-600 uppercase mt-1 truncate">{item.material_upgrade}</span>
                            </div>
                         </div>
 
-                        <div className="w-[15%] text-center flex flex-col items-center">
+                        <div className="w-[12%] text-center flex flex-col items-center">
                             <span className={`text-lg font-black ${theme.text} italic drop-shadow-[0_0_8px_currentColor]`}>{item.rank}</span>
                             <div className="flex items-center gap-1.5 opacity-60">
                                 {getAttributeIcon(item.atributo_principal, 10)}
@@ -309,6 +314,15 @@ const WeaponsNexus: React.FC = () => {
                            <p className="text-[7px] text-slate-600 font-black uppercase">Poder Bélico</p>
                         </div>
 
+                        {/* Novo campo na lista: TERRITÓRIO */}
+                        <div className="w-[12%] text-center px-2">
+                           <div className="flex items-center justify-center gap-1 text-[9px] font-black text-blue-400 uppercase italic">
+                              <MapPin size={10} />
+                              <span className="truncate max-w-[100px]">{item.territorio || 'NÃO MAPEADO'}</span>
+                           </div>
+                           <p className="text-[7px] text-slate-600 font-black uppercase mt-1">Território de Refino</p>
+                        </div>
+
                         <div className="w-[10%] text-center flex flex-col items-center">
                            <div className={`flex items-center gap-1 px-2 py-0.5 rounded-sm border ${item.boss_id ? 'border-amber-500/20 text-amber-500 bg-amber-500/5' : 'border-slate-800 text-slate-700'}`}>
                               {item.boss_id ? <Skull size={10} /> : <Target size={10} />}
@@ -317,13 +331,13 @@ const WeaponsNexus: React.FC = () => {
                            {item.desafio_concluido && <span className="text-[7px] text-emerald-500 font-bold uppercase mt-1">Sincronizada</span>}
                         </div>
 
-                        <div className="w-[15%] text-center">
+                        <div className="w-[13%] text-center">
                            <span className="text-[11px] font-black text-slate-400 tabular-nums">{item.lvl_min} / {item.lvl_max}</span>
                            <p className="text-[7px] text-slate-600 font-black uppercase">Escala LVL</p>
                         </div>
 
-                        <div className="w-[20%] px-4 border-l border-r border-slate-800/50">
-                           <span className="text-[10px] font-black text-purple-400 uppercase tracking-tight block mb-1">{item.efeito_especial || 'Nenhum'}</span>
+                        <div className="w-[15%] px-4 border-l border-slate-800/50">
+                           <span className="text-[10px] font-black text-purple-400 uppercase tracking-tight block mb-1 truncate">{item.efeito_especial || 'Nenhum'}</span>
                            <p className="text-[9px] text-slate-500 italic line-clamp-2 leading-relaxed">{item.desc_efeito || 'Sem descrição.'}</p>
                         </div>
 
