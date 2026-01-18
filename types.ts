@@ -10,8 +10,18 @@ export interface PlayerStats {
   intelligence: number;
   perception: number;
   vitality: number;
-  hp?: number; // Bônus direto de HP
-  mp?: number; // Bônus direto de MP
+  hp?: number; 
+  mp?: number; 
+}
+
+export interface ArmorSet {
+  id: string;
+  nome: string;
+  rank: ItemRank;
+  descricao_lore: string;
+  nivel_desbloqueio: number;
+  img?: string;
+  created_at?: string;
 }
 
 export interface PlayerStatus {
@@ -39,17 +49,16 @@ export interface PlayerStatus {
 
 export interface EquipmentItem {
   id: string;
-  nome: string; // Alinhado com banco
-  name?: string; // Fallback
+  nome: string; 
   rank: ItemRank;
   slot: string;
   bonus: Partial<PlayerStats>;
-  bonus_status?: string; // Texto para UI
+  bonus_status?: string; 
   description: string;
   img: string;
+  conjunto_id?: string;
 }
 
-// ... restante do arquivo permanece igual
 export interface Habit {
   id: string;
   name: string;
