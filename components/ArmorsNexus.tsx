@@ -28,7 +28,7 @@ const DB_TO_UI_STAT: Record<string, string> = {
 };
 
 const getRankClass = (rank: string) => {
-  switch (String(rank).toUpperCase()) {
+  switch (String(rank || 'E').toUpperCase()) {
     case 'S': return { border: 'border-rose-500', text: 'text-rose-500', bg: 'bg-rose-500/5', glow: 'shadow-rose-500/20' };
     case 'A': return { border: 'border-amber-500', text: 'text-amber-500', bg: 'bg-amber-500/5', glow: 'shadow-amber-500/20' };
     case 'B': return { border: 'border-purple-500', text: 'text-purple-500', bg: 'bg-purple-500/5', glow: 'shadow-purple-500/20' };
@@ -78,8 +78,11 @@ const ArmorsNexus: React.FC = () => {
       }
     } catch (err: any) {
       console.error("Erro Nexus Armaduras:", err);
-      if (err.message?.includes('column')) {
+      const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      if (msg.includes('column')) {
         alert("ERRO DE SCHEMA: Colunas novas não detectadas. Verifique se você rodou o script SQL de ALTER TABLE no Supabase.");
+      } else {
+        alert("Falha ao sincronizar: " + msg);
       }
     } finally {
       setIsLoading(false);
@@ -97,7 +100,7 @@ const ArmorsNexus: React.FC = () => {
       const payload = {
         nome: setFormData.nome.trim(),
         rank: setFormData.rank,
-        descricao_lore: setFormData.descricao_lore,
+        descricao_lore: String(setFormData.descricao_lore || ''),
         nivel_desbloqueio: Number(setFormData.nivel_desbloqueio),
         img: setFormData.img || null,
         boss_id: setFormData.boss_id?.trim() || null,
@@ -117,7 +120,8 @@ const ArmorsNexus: React.FC = () => {
       alert('Conjunto Mestre Sincronizado.');
     } catch (err: any) { 
       console.error("Erro ao salvar conjunto:", err);
-      alert('Falha ao sincronizar conjunto: ' + (err.message || 'Erro desconhecido. Verifique se as colunas boss_id existem no banco.')); 
+      const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      alert('Falha ao sincronizar conjunto: ' + msg); 
     } finally { setIsSaving(false); }
   };
 
@@ -161,10 +165,10 @@ const ArmorsNexus: React.FC = () => {
               </button>
             </div>
 
-            <div className="md:col-span-6"><FormGroup label="BOSS TRIAL ID" value={setFormData.boss_id || ''} onChange={(v:any) => setSetFormData({...setFormData, boss_id:v})} placeholder="Ex: boss-lycan-01" /></div>
+            <div className="md:col-span-6"><FormGroup label="BOSS TRIAL ID" value={setFormData.boss_id} onChange={(v:any) => setSetFormData({...setFormData, boss_id:v})} placeholder="Ex: boss-lycan-01" /></div>
             <div className="md:col-span-6 flex items-center gap-4 pt-6">
                 <label className="flex items-center gap-3 cursor-pointer group">
-                  <input type="checkbox" checked={setFormData.desafio_concluido} onChange={e => setSetFormData({...setFormData, desafio_concluido: e.target.checked})} className="hidden" />
+                  <input type="checkbox" checked={Boolean(setFormData.desafio_concluido)} onChange={e => setSetFormData({...setFormData, desafio_concluido: e.target.checked})} className="hidden" />
                   <div className={`w-10 h-10 border rounded-sm flex items-center justify-center transition-all ${setFormData.desafio_concluido ? 'bg-emerald-600 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.3)]' : 'bg-slate-900 border-slate-800'}`}>
                     {setFormData.desafio_concluido && <CheckCircle2 size={20} className="text-white" />}
                   </div>
@@ -204,7 +208,7 @@ const ArmorsNexus: React.FC = () => {
               </div>
               
               <div className="flex-1">
-                 <p className="text-[10px] text-slate-500 italic line-clamp-3 leading-relaxed mb-6">{set.descricao_lore || 'Sem registros históricos.'}</p>
+                 <p className="text-[10px] text-slate-500 italic line-clamp-3 leading-relaxed mb-6">{String(set.descricao_lore || 'Sem registros históricos.')}</p>
               </div>
 
               <div className="border-t border-slate-800 pt-4 flex items-center justify-between">
@@ -213,7 +217,7 @@ const ArmorsNexus: React.FC = () => {
                     <span className="text-xs font-black text-white tabular-nums">{setPieces.length} / 6</span>
                  </div>
                  <div className="flex items-center gap-2">
-                    <button onClick={(e) => { e.stopPropagation(); setEditingSetId(set.id); setSetFormData({ nome: set.nome, rank: set.rank, descricao_lore: set.descricao_lore, nivel_desbloqueio: set.nivel_desbloqueio, img: set.img || '', boss_id: set.boss_id || '', desafio_concluido: !!set.desafio_concluido }); window.scrollTo({top:0, behavior:'smooth'}); }} className="p-2 text-slate-500 hover:text-amber-500"><Edit3 size={14}/></button>
+                    <button onClick={(e) => { e.stopPropagation(); setEditingSetId(set.id); setSetFormData({ nome: set.nome, rank: set.rank, descricao_lore: set.descricao_lore || '', nivel_desbloqueio: set.nivel_desbloqueio || 1, img: set.img || '', boss_id: set.boss_id || '', desafio_concluido: !!set.desafio_concluido }); window.scrollTo({top:0, behavior:'smooth'}); }} className="p-2 text-slate-500 hover:text-amber-500"><Edit3 size={14}/></button>
                     <button onClick={(e) => { e.stopPropagation(); deleteSet(set.id); }} className="p-2 text-slate-500 hover:text-rose-500"><Trash2 size={14}/></button>
                     <div className="p-2 bg-blue-600/10 rounded-sm text-blue-500"><ChevronDown size={14} className="-rotate-90" /></div>
                  </div>
@@ -228,7 +232,7 @@ const ArmorsNexus: React.FC = () => {
            <div className="bg-[#030712] border-b border-slate-800 p-8 flex items-center justify-between">
               <div className="flex items-center gap-8">
                  <div className={`w-20 h-20 border-2 rounded-sm flex items-center justify-center bg-black/40 ${getRankClass(selectedSet.rank).border}`}>
-                    {selectedSet.img ? <img src={selectedSet.img} className="w-full h-full object-cover" /> : <Shield size={40} className="text-slate-800" />}
+                    {selectedSet.img ? <img src={selectedSet.img} className="w-full h-full object-cover" alt="" /> : <Shield size={40} className="text-slate-800" />}
                  </div>
                  <div>
                     <h2 className="text-4xl font-black text-white italic tracking-tighter uppercase leading-none">{selectedSet.nome}</h2>
@@ -248,7 +252,7 @@ const ArmorsNexus: React.FC = () => {
               <div className="max-w-[1440px] mx-auto space-y-12 pb-20 px-4">
                  <div className="bg-slate-900/20 border border-slate-800 p-6 rounded-sm">
                     <h4 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-3 flex items-center gap-2"><Info size={14} /> Memória do Conjunto</h4>
-                    <p className="text-sm text-slate-400 italic leading-relaxed">{selectedSet.descricao_lore}</p>
+                    <p className="text-sm text-slate-400 italic leading-relaxed">{String(selectedSet.descricao_lore || 'Sem registros históricos.')}</p>
                  </div>
 
                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -279,17 +283,23 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Mapeamento inicial para o estado
+  // Mapeamento inicial para o estado com fallback robusto para nulos
+  const getInitialBonusValue = () => {
+    if (!existingPiece?.bonus) return 0;
+    const vals = Object.values(existingPiece.bonus);
+    return vals.length > 0 ? Number(vals[0]) : 0;
+  };
+
   const initialStatLabel = existingPiece?.bonus ? (DB_TO_UI_STAT[Object.keys(existingPiece.bonus)[0]] || 'HP') : 'HP';
 
   const [formData, setFormData] = useState({
     nome: existingPiece?.nome || `${set.nome} (${slotName})`,
-    rank: set.rank, 
+    rank: set.rank || 'E', 
     slot: slotName,
     atributo: existingPiece?.atributo || 'VITALIDADE',
     bonus_label: existingPiece?.bonus_status || '',
     bonus_target: initialStatLabel,
-    bonus_value: existingPiece?.bonus ? Object.values(existingPiece.bonus)[0] : 0,
+    bonus_value: getInitialBonusValue(),
     vantagem_defensiva: existingPiece?.vantagem_defensiva || 'NENHUMA',
     fraqueza_defensiva: existingPiece?.fraqueza_defensiva || 'NENHUMA',
     descricao_lore: existingPiece?.descricao_lore || '',
@@ -304,16 +314,17 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
       const targetStat = UI_TO_DB_STAT[formData.bonus_target] || 'hp';
       const finalValue = Number(formData.bonus_value) || 0;
 
+      // Garantia absoluta de que todos os campos estão preenchidos antes de enviar ao Supabase
       const payload = {
-        nome: formData.nome.trim(),
-        rank: set.rank, 
-        slot: slotName,
-        atributo: formData.atributo,
-        bonus_status: formData.bonus_label || `+${finalValue} ${formData.bonus_target}`,
+        nome: String(formData.nome || '').trim(),
+        rank: String(set.rank || 'E'), 
+        slot: String(slotName || 'DESCONHECIDO'),
+        atributo: String(formData.atributo || 'VITALIDADE'),
+        bonus_status: String(formData.bonus_label || `+${finalValue} ${formData.bonus_target}`),
         bonus: { [targetStat]: finalValue },
-        vantagem_defensiva: formData.vantagem_defensiva,
-        fraqueza_defensiva: formData.fraqueza_defensiva,
-        descricao_lore: formData.descricao_lore,
+        vantagem_defensiva: String(formData.vantagem_defensiva || 'NENHUMA'),
+        fraqueza_defensiva: String(formData.fraqueza_defensiva || 'NENHUMA'),
+        descricao_lore: String(formData.descricao_lore || ''),
         img: formData.img || null,
         conjunto_id: set.id
       };
@@ -329,8 +340,9 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
       alert(`Peça [${slotName}] forjada com sucesso!`);
       onSaved();
     } catch (err: any) { 
-      console.error(err); 
-      alert("Erro ao forjar peça: " + (err.message || 'Verifique se as colunas novas existem no banco.'));
+      console.error("Erro Supabase forja:", err); 
+      const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      alert("Erro ao forjar peça: " + msg);
     } finally { setIsSaving(false); }
   };
 
@@ -346,7 +358,10 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = client.storage.from('armas-imgs').getPublicUrl(`armaduras/${fileName}`);
       setFormData(prev => ({ ...prev, img: publicUrl }));
-    } catch (err) { alert("Erro de Upload."); }
+    } catch (err) { 
+      console.error(err);
+      alert("Erro de Upload de Imagem."); 
+    }
     finally { setIsUploading(false); }
   };
 
@@ -365,10 +380,10 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
       <div className="flex gap-4">
          <div onClick={() => !isUploading && fileInputRef.current?.click()} className="w-20 h-20 bg-slate-950 border border-slate-800 rounded flex items-center justify-center cursor-pointer hover:border-blue-500 transition-all overflow-hidden shrink-0 shadow-inner group/img">
            <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-           {formData.img ? <img src={formData.img} className="w-full h-full object-cover" /> : <Upload size={24} className="text-slate-800 group-hover/img:text-slate-500 transition-colors" />}
+           {formData.img ? <img src={formData.img} className="w-full h-full object-cover" alt="" /> : <Upload size={24} className="text-slate-800 group-hover/img:text-slate-500 transition-colors" />}
          </div>
          <div className="flex-1 space-y-2">
-            <input value={formData.nome} onChange={e => setFormData({...formData, nome: e.target.value})} className="w-full bg-transparent border-b border-slate-800 text-[11px] font-black text-white uppercase outline-none focus:border-blue-500 transition-colors py-1" placeholder="NOME DA PEÇA" />
+            <input value={String(formData.nome ?? '')} onChange={e => setFormData({...formData, nome: e.target.value})} className="w-full bg-transparent border-b border-slate-800 text-[11px] font-black text-white uppercase outline-none focus:border-blue-500 transition-colors py-1" placeholder="NOME DA PEÇA" />
             <div className="flex items-center gap-2">
                <span className={`text-[8px] font-black px-2 py-0.5 rounded border ${theme.border} text-white`}>{set.rank}</span>
                <span className="text-[7px] font-bold text-slate-600 uppercase tracking-widest italic">SYNC ACTIVE</span>
@@ -379,13 +394,13 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
       <div className="grid grid-cols-2 gap-3">
          <div className="space-y-1">
            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-1">ETIQUETA</label>
-           <input value={formData.bonus_label} onChange={e => setFormData({...formData, bonus_label: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[10px] text-emerald-400 font-bold px-3 py-2 rounded-sm outline-none focus:border-emerald-500 shadow-inner" placeholder="+25 Força" />
+           <input value={String(formData.bonus_label ?? '')} onChange={e => setFormData({...formData, bonus_label: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[10px] text-emerald-400 font-bold px-3 py-2 rounded-sm outline-none focus:border-emerald-500 shadow-inner" placeholder="+25 Força" />
          </div>
          <div className="space-y-1">
            <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-1">VALOR</label>
            <div className="flex bg-slate-950 border border-slate-800 rounded-sm overflow-hidden shadow-inner">
-              <input type="number" value={formData.bonus_value as any} onChange={e => setFormData({...formData, bonus_value: Number(e.target.value)})} className="w-1/2 bg-transparent text-[10px] text-white px-2 py-2 outline-none font-bold tabular-nums" />
-              <select value={formData.bonus_target} onChange={e => setFormData({...formData, bonus_target: e.target.value})} className="w-1/2 bg-slate-900 text-[8px] text-slate-500 font-black px-1 outline-none uppercase border-l border-slate-800 cursor-pointer">
+              <input type="number" value={formData.bonus_value ?? 0} onChange={e => setFormData({...formData, bonus_value: Number(e.target.value)})} className="w-1/2 bg-transparent text-[10px] text-white px-2 py-2 outline-none font-bold tabular-nums" />
+              <select value={String(formData.bonus_target ?? 'HP')} onChange={e => setFormData({...formData, bonus_target: e.target.value})} className="w-1/2 bg-slate-900 text-[8px] text-slate-500 font-black px-1 outline-none uppercase border-l border-slate-800 cursor-pointer">
                 {['HP','MP','FORÇA','AGILIDADE','INTELIGÊNCIA','VITALIDADE','PERCEPÇÃO'].map(s => <option key={s} value={s}>{s}</option>)}
               </select>
            </div>
@@ -395,13 +410,13 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
       <div className="grid grid-cols-2 gap-3">
          <div className="space-y-1">
             <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-1">VANTAGEM</label>
-            <select value={formData.vantagem_defensiva} onChange={e => setFormData({...formData, vantagem_defensiva: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[8px] text-emerald-500 px-2 py-2 rounded-sm outline-none uppercase font-black shadow-inner cursor-pointer hover:border-emerald-500/50 transition-colors">
+            <select value={String(formData.vantagem_defensiva ?? 'NENHUMA')} onChange={e => setFormData({...formData, vantagem_defensiva: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[8px] text-emerald-500 px-2 py-2 rounded-sm outline-none uppercase font-black shadow-inner cursor-pointer hover:border-emerald-500/50 transition-colors">
               {VANTAGEM_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
          </div>
          <div className="space-y-1">
             <label className="text-[8px] font-black text-slate-600 uppercase tracking-widest ml-1">FRAQUEZA</label>
-            <select value={formData.fraqueza_defensiva} onChange={e => setFormData({...formData, fraqueza_defensiva: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[8px] text-rose-500 px-2 py-2 rounded-sm outline-none uppercase font-black shadow-inner cursor-pointer hover:border-rose-500/50 transition-colors">
+            <select value={String(formData.fraqueza_defensiva ?? 'NENHUMA')} onChange={e => setFormData({...formData, fraqueza_defensiva: e.target.value})} className="w-full bg-slate-950 border border-slate-800 text-[8px] text-rose-500 px-2 py-2 rounded-sm outline-none uppercase font-black shadow-inner cursor-pointer hover:border-rose-500/50 transition-colors">
               {FRAQUEZA_OPTIONS.map(v => <option key={v} value={v}>{v}</option>)}
             </select>
          </div>
@@ -412,7 +427,7 @@ const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, sl
            <ScrollText size={10} className="text-blue-500" /> PROPRIEDADES
          </label>
          <textarea 
-           value={formData.descricao_lore} 
+           value={String(formData.descricao_lore ?? '')} 
            onChange={e => setFormData({...formData, descricao_lore: e.target.value})}
            placeholder="Propriedades místicas..."
            className="w-full bg-slate-950 border border-slate-800 px-3 py-2 text-[10px] text-slate-400 outline-none focus:border-blue-500 placeholder:text-slate-900 font-bold transition-all min-h-[60px] resize-none custom-scrollbar shadow-inner leading-relaxed rounded-sm"
@@ -437,14 +452,14 @@ const FormGroup = ({ label, type="text", value, onChange, options, placeholder }
     {type === 'select' ? (
       <div className="relative group">
         <select value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} className="w-full bg-slate-950 border border-slate-800 px-4 py-4 text-[11px] text-white outline-none focus:border-blue-500 transition-all cursor-pointer uppercase font-black appearance-none group-hover:border-slate-600 shadow-inner">
-          {options.map((o:any) => <option key={String(o)} value={String(o)} className="bg-[#030712] uppercase">{String(o)}</option>)}
+          {(options || []).map((o:any) => <option key={String(o)} value={String(o)} className="bg-[#030712] uppercase">{String(o)}</option>)}
         </select>
         <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none group-hover:text-blue-400 transition-colors" />
       </div>
     ) : type === 'textarea' ? (
       <textarea value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full bg-slate-950 border border-slate-800 px-5 py-5 text-[12px] text-slate-300 outline-none focus:border-blue-500 placeholder:text-slate-900 font-bold transition-all min-h-[120px] resize-none hover:border-slate-600 custom-scrollbar shadow-inner leading-relaxed" />
     ) : (
-      <input type={type === 'number' ? 'number' : 'text'} value={value as any} step={type === 'number' ? '1' : undefined} onChange={(e) => onChange(type === 'number' ? Number(e.target.value) : e.target.value)} placeholder={placeholder} className="w-full bg-slate-950 border border-slate-800 px-5 py-4 text-[11px] text-white outline-none focus:border-blue-500 placeholder:text-slate-900 font-black transition-all hover:border-slate-600 shadow-inner italic uppercase" />
+      <input type={type === 'number' ? 'number' : 'text'} value={value ?? (type === 'number' ? 0 : '')} step={type === 'number' ? '1' : undefined} onChange={(e) => onChange(type === 'number' ? Number(e.target.value) : e.target.value)} placeholder={placeholder} className="w-full bg-slate-950 border border-slate-800 px-5 py-4 text-[11px] text-white outline-none focus:border-blue-500 placeholder:text-slate-900 font-black transition-all hover:border-slate-600 shadow-inner italic uppercase" />
     )}
   </div>
 );

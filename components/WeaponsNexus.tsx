@@ -11,7 +11,7 @@ import { getSupabaseClient } from '../supabaseClient';
 type SubTab = 'LISTA' | 'MATRIZ';
 
 const getRankClass = (rank: string) => {
-  switch (rank) {
+  switch (String(rank || 'E').toUpperCase()) {
     case 'S': return { border: 'bg-rose-500', text: 'text-rose-500' };
     case 'A': return { border: 'bg-amber-500', text: 'text-amber-500' };
     case 'B': return { border: 'bg-purple-500', text: 'text-purple-500' };
@@ -23,7 +23,7 @@ const getRankClass = (rank: string) => {
 };
 
 const getAttributeIcon = (attr: string, size = 14) => {
-  switch (attr) {
+  switch (String(attr || '').toUpperCase()) {
     case 'FORÇA': return <Dumbbell size={size} className="text-white" />;
     case 'AGILIDADE': return <Zap size={size} className="text-white" />;
     case 'INTELIGÊNCIA': return <Brain size={size} className="text-white" />;
@@ -71,8 +71,10 @@ const WeaponsNexus: React.FC = () => {
       const sorted = (weapons || []).sort((a, b) => (rankWeights[b.rank] || 0) - (rankWeights[a.rank] || 0));
       setItems(sorted);
       setAffinities(affs || []);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Erro Nexus Armas:", err);
+      const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      alert("Falha na sincronização: " + msg);
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +96,8 @@ const WeaponsNexus: React.FC = () => {
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = client.storage.from('armas-imgs').getPublicUrl(filePath);
       setFormData(prev => ({ ...prev, img: publicUrl }));
-    } catch (err) {
+    } catch (err: any) {
+      console.error(err);
       alert("Falha no Nexus Storage.");
     } finally {
       setIsUploading(false);
@@ -109,11 +112,14 @@ const WeaponsNexus: React.FC = () => {
     try {
       const { id, created_at, ...cleanData } = formData as any;
       const payload = { ...cleanData, 
-        dano_base: Number(cleanData.dano_base),
-        nivel_desbloqueio: Number(cleanData.nivel_desbloqueio),
-        lvl_min: Number(cleanData.lvl_min),
-        lvl_max: Number(cleanData.lvl_max),
-        desafio_concluido: Boolean(cleanData.desafio_concluido)
+        nome: String(cleanData.nome || '').trim(),
+        rank: String(cleanData.rank || 'E'),
+        dano_base: Number(cleanData.dano_base) || 0,
+        nivel_desbloqueio: Number(cleanData.nivel_desbloqueio) || 1,
+        lvl_min: Number(cleanData.lvl_min) || 1,
+        lvl_max: Number(cleanData.lvl_max) || 10,
+        desafio_concluido: Boolean(cleanData.desafio_concluido),
+        historia: String(cleanData.historia || '')
       };
       if (editingId) {
         await client.from('armas').update(payload).eq('id', editingId);
@@ -124,7 +130,11 @@ const WeaponsNexus: React.FC = () => {
       setEditingId(null);
       fetchData();
       alert('Sincronização Concluída.');
-    } catch (err) { alert('Erro na recalibração.'); }
+    } catch (err: any) { 
+      console.error(err);
+      const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      alert('Erro na recalibração: ' + msg); 
+    }
     finally { setIsSaving(false); }
   };
 
@@ -135,7 +145,10 @@ const WeaponsNexus: React.FC = () => {
     setIsSaving(true);
     try {
       const { id, created_at, ...cleanAff } = affinityData as any;
-      const payload = { ...cleanAff, multiplicador: Number(cleanAff.multiplicador) };
+      const payload = { ...cleanAff, 
+        multiplicador: Number(cleanAff.multiplicador) || 1.0,
+        lore: String(cleanAff.lore || '')
+      };
       if (editingAffinityId) {
         await client.from('armas_afinidades').update(payload).eq('id', editingAffinityId);
       } else {
@@ -145,7 +158,11 @@ const WeaponsNexus: React.FC = () => {
       setEditingAffinityId(null);
       fetchData();
       alert('Matriz Atualizada.');
-    } catch (err) { alert('Erro na matriz.'); }
+    } catch (err: any) { 
+      console.error(err);
+      const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      alert('Erro na matriz: ' + msg); 
+    }
     finally { setIsSaving(false); }
   };
 
@@ -158,8 +175,10 @@ const WeaponsNexus: React.FC = () => {
       if (error) throw error;
       fetchData();
       alert("Registro Expurmado.");
-    } catch (err) {
-      alert("Erro ao apagar registro.");
+    } catch (err: any) {
+      console.error(err);
+      const msg = err.message || (typeof err === 'object' ? JSON.stringify(err) : String(err));
+      alert("Erro ao apagar registro: " + msg);
     }
   };
 
@@ -194,7 +213,6 @@ const WeaponsNexus: React.FC = () => {
             </h3>
             
             <form onSubmit={handleSaveWeapon} className="space-y-8">
-              {/* LINHA 1: BÁSICOS */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                 <div className="md:col-span-5"><FormGroup label="NOME DA ARMA" value={formData.nome} onChange={(v:any) => setFormData({...formData, nome:v})} /></div>
                 <div className="md:col-span-2"><FormGroup label="RANK" type="select" options={['S','A','B','C','D','E']} value={formData.rank} onChange={(v:any) => setFormData({...formData, rank:v})} /></div>
@@ -202,7 +220,6 @@ const WeaponsNexus: React.FC = () => {
                 <div className="md:col-span-2"><FormGroup label="DANO INICIAL" type="number" value={formData.dano_base} onChange={(v:any) => setFormData({...formData, dano_base:v})} /></div>
               </div>
 
-              {/* LINHA 2: PROGRESSÃO E UPGRADE */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 border-t border-slate-800/50 pt-8">
                 <div className="md:col-span-2"><FormGroup label="LEVEL MÍNIMO" type="number" value={formData.lvl_min} onChange={(v:any) => setFormData({...formData, lvl_min:v})} /></div>
                 <div className="md:col-span-2"><FormGroup label="LEVEL MÁXIMO" type="number" value={formData.lvl_max} onChange={(v:any) => setFormData({...formData, lvl_max:v})} /></div>
@@ -214,18 +231,17 @@ const WeaponsNexus: React.FC = () => {
                       <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                       <div className="flex items-center justify-between w-full">
                          <span className="text-[10px] font-bold text-slate-600">{isUploading ? 'SINCRONIZANDO...' : formData.img ? 'UPLOAD OK' : 'SELECIONAR'}</span>
-                         {formData.img && <div className="w-7 h-7 rounded-sm border border-slate-800 overflow-hidden"><img src={formData.img} className="w-full h-full object-cover" /></div>}
+                         {formData.img && <div className="w-7 h-7 rounded-sm border border-slate-800 overflow-hidden"><img src={formData.img} className="w-full h-full object-cover" alt="" /></div>}
                       </div>
                    </div>
                 </div>
               </div>
 
-              {/* LINHA 3: DESAFIOS E BOSS */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 border-t border-slate-800/50 pt-8">
                  <div className="md:col-span-4"><FormGroup label="ID DO BOSS (TRIAL)" value={formData.boss_id} onChange={(v:any) => setFormData({...formData, boss_id:v})} placeholder="Ex: boss-lycan-01" /></div>
                  <div className="md:col-span-2 flex items-center gap-2 pt-6">
                     <label className="flex items-center gap-3 cursor-pointer group">
-                       <input type="checkbox" checked={formData.desafio_concluido} onChange={e => setFormData({...formData, desafio_concluido: e.target.checked})} className="hidden" />
+                       <input type="checkbox" checked={Boolean(formData.desafio_concluido)} onChange={e => setFormData({...formData, desafio_concluido: e.target.checked})} className="hidden" />
                        <div className={`w-10 h-10 border rounded-sm flex items-center justify-center transition-all ${formData.desafio_concluido ? 'bg-emerald-600 border-emerald-400' : 'bg-slate-900 border-slate-800'}`}>
                           {formData.desafio_concluido && <CheckCircle2 size={20} className="text-white" />}
                        </div>
@@ -236,7 +252,6 @@ const WeaponsNexus: React.FC = () => {
                  <div className="md:col-span-3"><FormGroup label="DESCRIÇÃO DO EFEITO" value={formData.desc_efeito} onChange={(v:any) => setFormData({...formData, desc_efeito:v})} placeholder="Detalhes técnicos..." /></div>
               </div>
 
-              {/* LINHA 4: LORE / HISTÓRIA */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 border-t border-slate-800/50 pt-8">
                 <div className="md:col-span-10"><FormGroup label="REGISTRO DE MEMÓRIA (LORE)" type="textarea" value={formData.historia} onChange={(v:any) => setFormData({...formData, historia:v})} /></div>
                 <div className="md:col-span-2 flex flex-col gap-2 items-end">
@@ -254,7 +269,6 @@ const WeaponsNexus: React.FC = () => {
           </div>
 
           <div className="space-y-4">
-             {/* HEADER DA TABELA */}
              <div className="bg-slate-900/30 border border-slate-800/50 h-10 flex items-center px-6 rounded-sm w-full font-black text-[9px] text-slate-500 uppercase tracking-widest">
                 <div className="w-[20%]">ARTEFATO</div>
                 <div className="w-[15%] text-center">RANK/ATTR</div>
@@ -274,7 +288,7 @@ const WeaponsNexus: React.FC = () => {
                         
                         <div className="w-[20%] flex items-center gap-4">
                            <div className="w-14 h-14 bg-slate-950 border border-slate-800 rounded-sm flex items-center justify-center overflow-hidden flex-shrink-0">
-                              {item.img ? <img src={item.img} className="w-full h-full object-cover" /> : <Sword size={24} className="text-slate-800" />}
+                              {item.img ? <img src={item.img} className="w-full h-full object-cover" alt="" /> : <Sword size={24} className="text-slate-800" />}
                            </div>
                            <div className="flex flex-col min-w-0">
                               <h4 className="text-[12px] font-black text-white uppercase italic tracking-tighter truncate">{item.nome}</h4>
@@ -378,7 +392,7 @@ const WeaponsNexus: React.FC = () => {
                    </div>
                    <div className="w-[10%] text-center text-white text-lg font-black italic">x{aff.multiplicador}</div>
                    <div className="w-[25%] px-8 border-l border-r border-slate-800/30">
-                      <p className="text-[10px] text-slate-500 italic line-clamp-2 leading-tight">{aff.lore || 'Sem lore técnico.'}</p>
+                      <p className="text-[10px] text-slate-500 italic line-clamp-2 leading-tight">{String(aff.lore || 'Sem lore técnico.')}</p>
                    </div>
                    <div className="w-[15%] flex justify-end gap-2">
                       <button 
@@ -414,15 +428,15 @@ const FormGroup = ({ label, type="text", value, onChange, options, placeholder }
     <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">{label}</label>
     {type === 'select' ? (
       <div className="relative group">
-        <select value={value} onChange={(e) => onChange(e.target.value)} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 text-[11px] text-white outline-none focus:border-blue-500 transition-all cursor-pointer h-12 uppercase font-black appearance-none group-hover:border-slate-600 shadow-inner">
-          {options.map((o:any) => <option key={o} value={o} className="bg-[#030712]">{o}</option>)}
+        <select value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 text-[11px] text-white outline-none focus:border-blue-500 transition-all cursor-pointer h-12 uppercase font-black appearance-none group-hover:border-slate-600 shadow-inner">
+          {(options || []).map((o:any) => <option key={String(o)} value={String(o)} className="bg-[#030712]">{String(o)}</option>)}
         </select>
         <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none group-hover:text-blue-400 transition-colors" />
       </div>
     ) : type === 'textarea' ? (
-      <textarea value={value} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full bg-slate-950 border border-slate-800 px-5 py-4 text-[11px] text-slate-300 outline-none focus:border-blue-500 placeholder:text-slate-900 font-bold transition-all min-h-[104px] h-[104px] resize-none hover:border-slate-600 custom-scrollbar shadow-inner leading-relaxed" />
+      <textarea value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} placeholder={placeholder} className="w-full bg-slate-950 border border-slate-800 px-5 py-4 text-[11px] text-slate-300 outline-none focus:border-blue-500 placeholder:text-slate-900 font-bold transition-all min-h-[104px] h-[104px] resize-none hover:border-slate-600 custom-scrollbar shadow-inner leading-relaxed" />
     ) : (
-      <input type={type === 'number' ? 'number' : 'text'} value={value} step={type === 'number' ? '0.1' : undefined} onChange={(e) => onChange(type === 'number' ? Number(e.target.value) : e.target.value)} placeholder={placeholder} className="w-full bg-slate-950 border border-slate-800 px-5 py-3 text-[11px] text-white outline-none focus:border-blue-500 placeholder:text-slate-900 font-black transition-all h-12 hover:border-slate-600 shadow-inner italic" />
+      <input type={type === 'number' ? 'number' : 'text'} value={value ?? (type === 'number' ? 0 : '')} step={type === 'number' ? '0.1' : undefined} onChange={(e) => onChange(type === 'number' ? Number(e.target.value) : e.target.value)} placeholder={placeholder} className="w-full bg-slate-950 border border-slate-800 px-5 py-3 text-[11px] text-white outline-none focus:border-blue-500 placeholder:text-slate-900 font-black transition-all h-12 hover:border-slate-600 shadow-inner italic" />
     )}
   </div>
 );
