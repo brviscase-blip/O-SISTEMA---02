@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Activity, Settings, BarChart3, Package, Ghost, FlaskConical, Crown, Settings2, Box, Database, Lock } from 'lucide-react';
+import { Activity, Settings, BarChart3, Package, Ghost, FlaskConical, Crown, Settings2, Box, Database, Lock, Cpu } from 'lucide-react';
 import { PlayerStatus, EquipmentItem } from '../types';
 import AttributeCard from './AttributeCard';
 import ArmorCard from './ArmorCard';
@@ -114,44 +114,49 @@ const PlayerStatusWindow: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* DASHBOARD DE MATRIZ (12 COLUNAS) */}
-      <div className="flex-1 grid grid-cols-12 gap-2 min-h-0">
+      {/* DASHBOARD DE MATRIZ PRINCIPAL */}
+      <div className="flex-1 flex flex-col gap-2 min-h-0">
         
-        {/* BLOCO OPERACIONAL (COLUNAS 1-8) */}
-        <div className="col-span-8 grid grid-rows-[auto_1fr_1fr] gap-2 min-h-0">
-          <div className="row-span-1">
+        {/* PARTE SUPERIOR: OPERAÇÕES E CORE */}
+        <div className="flex-[1.5] grid grid-cols-12 gap-2 min-h-0">
+          {/* Coluna Esquerda (8 Colunas) */}
+          <div className="col-span-8 flex flex-col gap-2">
             <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
+            <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
+              <ArmorCard equipment={status.equipment} onOpenManagement={() => setIsArmorModalOpen(true)} />
+              <ArsenalCard equipped={equippedWeapons} onOpenManagement={() => setIsWeaponModalOpen(true)} />
+            </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2 min-h-0">
-            <ArmorCard equipment={status.equipment} onOpenManagement={() => setIsArmorModalOpen(true)} />
-            <ArsenalCard equipped={equippedWeapons} onOpenManagement={() => setIsWeaponModalOpen(true)} />
-          </div>
+          {/* Coluna Direita (4 Colunas) - Mega Core */}
+          <div className="col-span-4 bg-[#030712] border border-slate-800 rounded-sm flex flex-col items-center justify-center text-center relative overflow-hidden group shadow-2xl">
+             <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
+             <div className="absolute inset-0 bg-gradient-to-b from-blue-500/[0.02] to-transparent pointer-events-none" />
+             <div className="absolute top-0 left-0 w-full h-px bg-blue-500/20 shadow-[0_0_15px_rgba(59,130,246,0.5)] animate-[scan_4s_linear_infinite]" />
 
-          <div className="grid grid-cols-2 gap-2 min-h-0">
-            <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
-            <InventorySection title="CONSUMÍVEIS" slots={10} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
+             <div className="relative z-10 flex flex-col items-center">
+                <div className="w-20 h-20 rounded-full bg-slate-900/50 border border-slate-800 flex items-center justify-center mb-6 shadow-[0_0_40px_rgba(0,0,0,0.5)] group-hover:border-blue-500/30 transition-colors duration-700">
+                   <Cpu size={40} className="text-slate-800 group-hover:text-blue-500/40 transition-colors duration-700 animate-pulse" />
+                </div>
+                <h3 className="text-sm font-black uppercase tracking-[0.5em] text-slate-200 opacity-60">Visualizer_Core</h3>
+                <div className="flex items-center gap-3 mt-4">
+                   <div className="w-1 h-1 rounded-full bg-blue-500 animate-ping" />
+                   <p className="text-[8px] font-bold text-slate-600 uppercase tracking-[0.3em] italic">Aguardando Input Biométrico</p>
+                </div>
+             </div>
+             
+             {/* Corner Accents */}
+             <div className="absolute top-2 left-2 w-2 h-2 border-t border-l border-slate-800" />
+             <div className="absolute top-2 right-2 w-2 h-2 border-t border-r border-slate-800" />
+             <div className="absolute bottom-2 left-2 w-2 h-2 border-b border-l border-slate-800" />
+             <div className="absolute bottom-2 right-2 w-2 h-2 border-b border-r border-slate-800" />
           </div>
         </div>
 
-        {/* BLOCO DE COMANDO (COLUNAS 9-12) */}
-        <div className="col-span-4 grid grid-rows-[auto_1fr_1fr] gap-2 min-h-0">
-          
-          {/* LINHA 1: VISUALIZER CORE (ALINHADO AOS ATRIBUTOS) */}
-          <div className="bg-[#030712] border border-slate-800 rounded-sm p-4 flex flex-col items-center justify-center text-center opacity-40 relative overflow-hidden h-[180px]">
-             <div className="absolute inset-0 opacity-5 pointer-events-none bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')]" />
-             <BarChart3 size={32} className="text-slate-800 mb-2" />
-             <h3 className="text-[10px] font-black uppercase tracking-[0.4em]">Visualizer_Core</h3>
-             <p className="text-[7px] font-bold text-slate-600 uppercase mt-1 tracking-widest italic">Aguardando Input Biométrico</p>
-          </div>
-
-          {/* LINHA 2: CANAL DE SINCRONIZAÇÃO (ALINHADO ÀS ARMADURAS - PLACEHOLDER) */}
-          <div className="bg-[#030712] border border-slate-800 rounded-sm flex flex-col items-center justify-center opacity-10 border-dashed transition-all">
-             <Lock size={20} className="text-slate-700 mb-2" />
-             <span className="text-[8px] font-black uppercase tracking-[0.3em] text-slate-700">Canal Restrito</span>
-          </div>
-
-          {/* LINHA 3: EXÉRCITO DAS SOMBRAS (AGORA NO LUGAR DO SHADOW STORAGE) */}
+        {/* PARTE INFERIOR: FILEIRA UNIFICADA DE ARMAZENAMENTO (Inventário, Consumíveis, Exército) */}
+        <div className="flex-1 grid grid-cols-3 gap-2 min-h-0">
+          <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5" icon={<Package size={10}/>} color="blue" />
+          <InventorySection title="CONSUMÍVEIS" slots={10} gridCols="grid-cols-5" icon={<FlaskConical size={10}/>} color="emerald" />
           <InventorySection title="EXÉRCITO DAS SOMBRAS" slots={10} gridCols="grid-cols-5" icon={<Ghost size={10}/>} color="purple" />
         </div>
       </div>
@@ -188,6 +193,15 @@ const PlayerStatusWindow: React.FC<Props> = ({
           onClose={() => setSelectedWeaponDetail(null)} 
         />
       )}
+
+      <style>{`
+        @keyframes scan {
+          0% { transform: translateY(0); opacity: 0; }
+          10% { opacity: 1; }
+          90% { opacity: 1; }
+          100% { transform: translateY(400px); opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 };
@@ -201,7 +215,6 @@ const InventorySection = ({ title, slots, gridCols, icon, color }: any) => {
 
   return (
     <div className="h-full bg-[#030712] border border-slate-800 flex flex-col rounded-sm shadow-xl min-h-0 overflow-hidden">
-      {/* Identical Header Pattern (30px Height) */}
       <div className="p-1.5 bg-black/40 border-b border-slate-800 flex items-center justify-between h-[30px] flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className={colorMap[color].split(' ')[0]}>{icon}</span>
@@ -212,7 +225,6 @@ const InventorySection = ({ title, slots, gridCols, icon, color }: any) => {
         </button>
       </div>
 
-      {/* Identical Grid Content Area */}
       <div className={`p-1 flex-1 grid ${gridCols} gap-1 min-h-0`}>
         {Array.from({ length: slots }).map((_, i) => (
           <div 
