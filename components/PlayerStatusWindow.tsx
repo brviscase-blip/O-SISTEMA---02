@@ -5,7 +5,8 @@ import { PlayerStatus, EquipmentItem, EquipmentSlot, PlayerStats } from '../type
 import AttributeCard from './AttributeCard';
 import ArmorCard from './ArmorCard';
 import ArsenalCard from './ArsenalCard';
-import { WeaponArsenalModal, ArmorModulationModal, WeaponDetailModal } from './ArsenalModals';
+import { WeaponArsenalModal, WeaponDetailModal } from './ArsenalModals';
+import { ArmorModulationModal } from './ArmorModals';
 
 interface Props {
   status: PlayerStatus;
@@ -134,7 +135,8 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
       <ArmorModulationModal 
         isOpen={isArmorModalOpen} 
         onClose={() => setIsArmorModalOpen(false)} 
-        equipment={status.equipment as any} 
+        status={status}
+        onEquip={onEquipItem}
         onUnequip={onUnequipItem}
       />
 

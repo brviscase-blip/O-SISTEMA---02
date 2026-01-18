@@ -1,12 +1,11 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
-  Sword, Shield, X, Skull, Loader2, Search, CheckCircle2, 
-  Eye, Lock, LockKeyhole, ShieldCheck, Dumbbell, Zap, Brain, Target,
+  Sword, X, Skull, Loader2, Search, CheckCircle2, 
+  Eye, LockKeyhole, ShieldCheck, Dumbbell, Zap, Brain, Target,
   Activity, Sparkles, ScrollText, Fingerprint, ShieldPlus
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
-import { PlayerStatus, EquipmentSlot } from '../types';
 
 const getRankTheme = (rank: string) => {
   switch (String(rank || 'E').toUpperCase()) {
@@ -31,7 +30,6 @@ const getAttributeIcon = (attr: string, size = 12) => {
 
 const rankWeights: Record<string, number> = { 'E': 1, 'D': 2, 'C': 3, 'B': 4, 'A': 5, 'S': 6 };
 
-// --- MODAL ARSENAL ---
 export const WeaponArsenalModal = ({ isOpen, onClose, status, equipped, setEquipped, onShowDetail, onStartTrial }: any) => {
   const [search, setSearch] = useState('');
   const [weapons, setWeapons] = useState<any[]>([]);
@@ -81,7 +79,7 @@ export const WeaponArsenalModal = ({ isOpen, onClose, status, equipped, setEquip
           </div>
           <div>
             <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none">ARSENAL DE ATAQUE</h2>
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 opacity-60">Sincronização de Dados Vital em Tempo Real</p>
+            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 opacity-60">Sincronização de Poder Bélico em Tempo Real</p>
           </div>
         </div>
         <button onClick={onClose} className="bg-rose-600 hover:bg-rose-500 text-white px-12 py-4 rounded-sm text-xs font-black uppercase flex items-center gap-3 transition-all shadow-xl active:scale-95">
@@ -121,7 +119,6 @@ export const WeaponArsenalModal = ({ isOpen, onClose, status, equipped, setEquip
   );
 };
 
-// --- CARTA DE ARMA (ALTA FIDELIDADE) ---
 const WeaponCard = ({ weapon, playerLevel, completedTrials, isPrimary, isSecondary, onEquipPrimary, onEquipSecondary, onShowDetail, onStartTrial }: any) => {
   const isLevelLocked = playerLevel < (weapon.nivel_desbloqueio || 1);
   const needsTrial = Boolean(weapon.boss_id);
@@ -190,54 +187,6 @@ const WeaponCard = ({ weapon, playerLevel, completedTrials, isPrimary, isSeconda
   );
 };
 
-// --- MODAL DE MODULAÇÃO DE ARMADURA ---
-export const ArmorModulationModal = ({ isOpen, onClose, equipment, onUnequip }: any) => {
-  if (!isOpen) return null;
-  return (
-    <div className="fixed inset-0 z-[6000] bg-[#010307] flex flex-col animate-in fade-in duration-300">
-      <div className="bg-[#030712] border-b border-slate-800 p-6 flex items-center justify-between">
-        <div className="flex items-center gap-6">
-          <div className="w-12 h-12 bg-blue-900/20 border border-blue-500/50 rounded flex items-center justify-center text-blue-500 shadow-[0_0_20px_rgba(59,130,246,0.2)]">
-            <Shield size={24}/>
-          </div>
-          <div>
-            <h2 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none">MODULAÇÃO DE ARMADURA</h2>
-            <p className="text-[9px] font-bold text-slate-500 uppercase tracking-widest mt-1.5 opacity-60">Sincronização de Dados Vital em Tempo Real</p>
-          </div>
-        </div>
-        <button onClick={onClose} className="bg-blue-600 hover:bg-blue-500 text-white px-12 py-4 rounded-sm text-xs font-black uppercase flex items-center gap-3 transition-all shadow-xl active:scale-95">
-          <CheckCircle2 size={18} /> CONFIRMAR
-        </button>
-      </div>
-      <div className="flex-1 p-8 overflow-y-auto no-scrollbar">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {Object.entries(equipment).map(([slot, item]: [any, any]) => (
-            <div key={slot} className="bg-[#030712] border border-slate-800 p-6 rounded-sm flex flex-col gap-4 relative">
-              <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">{slot.toUpperCase()}</span>
-                {item && <button onClick={() => onUnequip?.(slot)} className="text-rose-500 hover:text-rose-400 transition-colors"><X size={16} /></button>}
-              </div>
-              {item ? (
-                <div className="flex items-center gap-4">
-                  <div className="w-16 h-16 bg-slate-950 border border-slate-800 rounded-sm overflow-hidden flex items-center justify-center">
-                    {item.img ? <img src={item.img} className="w-full h-full object-cover" alt="" /> : <Shield size={24} className="text-slate-700" />}
-                  </div>
-                  <div className="flex flex-col">
-                    <h4 className="text-sm font-black text-white uppercase italic">{item.nome}</h4>
-                    <span className={`text-[10px] font-black ${getRankTheme(item.rank).text}`}>RANK {item.rank}</span>
-                    <span className="text-[9px] font-bold text-emerald-500 mt-1">{item.bonus_status}</span>
-                  </div>
-                </div>
-              ) : <div className="py-4 text-center border border-dashed border-slate-800 rounded-sm opacity-30"><p className="text-[10px] font-black uppercase tracking-widest">Nenhum Registro</p></div>}
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-// --- MODAL DE DETALHE DA ARMA ---
 export const WeaponDetailModal = ({ weapon, onClose }: any) => {
   const theme = getRankTheme(weapon.rank);
   return (
