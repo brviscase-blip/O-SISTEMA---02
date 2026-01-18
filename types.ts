@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React;
 
 export type ViewType = 'SISTEMA' | 'TAREFAS' | 'DUNGEON' | 'TIMELINE';
 export type ItemRank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
@@ -21,6 +21,8 @@ export interface ArmorSet {
   descricao_lore: string;
   nivel_desbloqueio: number;
   img?: string;
+  boss_id?: string;
+  desafio_concluido?: boolean;
   created_at?: string;
 }
 
