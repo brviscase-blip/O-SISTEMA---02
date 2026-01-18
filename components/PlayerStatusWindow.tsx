@@ -114,11 +114,11 @@ const PlayerStatusWindow: React.FC<Props> = ({
         </div>
       </div>
 
-      {/* DASHBOARD PRINCIPAL - ESTRUTURA DE PROPORÇÃO 60/40 */}
+      {/* DASHBOARD PRINCIPAL - ESTRUTURA DE PROPORÇÃO 50/50 */}
       <div className="flex-1 flex flex-col gap-2 min-h-0 overflow-hidden">
         
-        {/* BLOCO SUPERIOR (GRUPO AZUL) - 60% DA ALTURA */}
-        <div className="flex-[60] grid grid-cols-2 gap-2 min-h-0">
+        {/* BLOCO SUPERIOR (GRUPO AZUL) - 50% DA ALTURA */}
+        <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
           
           {/* ESQUERDA (AZUL): ATRIBUTOS + INVENTÁRIOS */}
           <div className="flex flex-col gap-2 min-h-0">
@@ -162,8 +162,8 @@ const PlayerStatusWindow: React.FC<Props> = ({
           </div>
         </div>
 
-        {/* BLOCO INFERIOR (GRUPO VERMELHO) - 40% DA ALTURA */}
-        <div className="flex-[40] grid grid-cols-2 gap-2 min-h-0">
+        {/* BLOCO INFERIOR (GRUPO VERMELHO) - 50% DA ALTURA */}
+        <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
           
           {/* ESQUERDA (VERMELHO): ARMADURAS + ARSENAL */}
           <div className="grid grid-cols-2 gap-2 min-h-0">
