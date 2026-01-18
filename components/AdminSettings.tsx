@@ -1,16 +1,17 @@
 
 import React, { useState } from 'react';
 import { 
-  Lock, Database, Sword, X, Shield, Box, Crown
+  Lock, Database, Sword, X, Shield, Box, Crown, Package
 } from 'lucide-react';
 import WeaponsNexus from './WeaponsNexus';
 import ArmorsNexus from './ArmorsNexus';
+import InventoryNexus from './InventoryNexus';
 
 interface Props {
   onClose: () => void;
 }
 
-type AdminModule = 'ARMAS' | 'ARMADURAS' | 'ITEM' | 'ACESSORIO';
+type AdminModule = 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'ACESSORIO';
 
 const AdminSettings: React.FC<Props> = ({ onClose }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -72,9 +73,9 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
       <div className="flex-1 flex overflow-hidden">
         <aside className="w-64 bg-[#020617] border-r border-slate-800 flex flex-col flex-shrink-0 shadow-2xl z-10">
           <nav className="flex-1 p-3 space-y-1">
-            <AdminNavItem icon={<Sword size={18}/>} label="ARMAS" active={activeModule === 'ARMAS'} onClick={() => setActiveModule('ARMAS')} />
+            <AdminNavItem icon={<Sword size={18}/>} label="ARSENAL" active={activeModule === 'ARMAS'} onClick={() => setActiveModule('ARMAS')} />
             <AdminNavItem icon={<Shield size={18}/>} label="ARMADURAS" active={activeModule === 'ARMADURAS'} onClick={() => setActiveModule('ARMADURAS')} />
-            <AdminNavItem icon={<Box size={18}/>} label="ITENS" active={activeModule === 'ITEM'} onClick={() => setActiveModule('ITEM')} isLocked />
+            <AdminNavItem icon={<Package size={18}/>} label="INVENTÁRIO" active={activeModule === 'INVENTARIO'} onClick={() => setActiveModule('INVENTARIO')} />
             <AdminNavItem icon={<Crown size={18}/>} label="ACESSÓRIOS" active={activeModule === 'ACESSORIO'} onClick={() => setActiveModule('ACESSORIO')} isLocked />
           </nav>
         </aside>
@@ -82,7 +83,8 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
         <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#010307]">
           {activeModule === 'ARMAS' && <WeaponsNexus />}
           {activeModule === 'ARMADURAS' && <ArmorsNexus />}
-          {(activeModule === 'ITEM' || activeModule === 'ACESSORIO') && (
+          {activeModule === 'INVENTARIO' && <InventoryNexus />}
+          {(activeModule === 'ACESSORIO') && (
              <div className="flex-1 flex items-center justify-center py-40">
                 <div className="text-center opacity-20">
                    <Lock size={64} className="mx-auto mb-4" />
