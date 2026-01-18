@@ -8,6 +8,7 @@ import ArsenalCard from './ArsenalCard';
 import { WeaponArsenalModal, WeaponDetailModal } from './ArsenalModals';
 import { ArmorModulationModal } from './ArmorModals';
 import AccountSettingsModal from './AccountSettingsModal';
+import InventoryBrowserModal from './InventoryModals';
 
 interface Props {
   status: PlayerStatus;
@@ -41,6 +42,12 @@ const PlayerStatusWindow: React.FC<Props> = ({
   const [isWeaponModalOpen, setIsWeaponModalOpen] = useState(false);
   const [isAccountModalOpen, setIsAccountModalOpen] = useState(false);
   const [selectedWeaponDetail, setSelectedWeaponDetail] = useState<any | null>(null);
+  
+  // Modais de Inventário
+  const [inventoryModal, setInventoryModal] = useState<{ isOpen: boolean, type: 'Geral' | 'Relíquias' | 'Consumíveis' }>({
+    isOpen: false,
+    type: 'Geral'
+  });
 
   const [equippedWeapons, setEquippedWeapons] = useState<{ primary: any | null, secondary: any | null }>(() => {
     const saved = localStorage.getItem('nexus_equipped_weapons');
@@ -53,6 +60,10 @@ const PlayerStatusWindow: React.FC<Props> = ({
 
   const hpPercent = (status.hp / status.maxHp) * 100;
   const xpPercent = (status.xp / status.maxXp) * 100;
+
+  const openInventory = (type: 'Geral' | 'Relíquias' | 'Consumíveis') => {
+    setInventoryModal({ isOpen: true, type });
+  };
 
   return (
     <div className="h-full w-full flex flex-col gap-2 p-2 bg-[#010307] select-none overflow-hidden font-sans">
@@ -126,15 +137,35 @@ const PlayerStatusWindow: React.FC<Props> = ({
                <AttributeCard status={status} totalBonuses={{} as any} onUpdateStat={onUpdateStat} />
              </div>
              <div className="flex-1 grid grid-cols-2 gap-2 min-h-0">
-                {/* INVENTÁRIO GERAL: EXATOS 10 SLOTS (5x2) PREENCHENDO O CARD */}
-                <InventorySection title="INVENTÁRIO GERAL" slots={10} gridCols="grid-cols-5 grid-rows-2" icon={<Package size={10}/>} color="blue" />
+                <InventorySection 
+                  title="INVENTÁRIO GERAL" 
+                  slots={10} 
+                  gridCols="grid-cols-5 grid-rows-2" 
+                  icon={<Package size={10}/>} 
+                  color="blue" 
+                  onClick={() => openInventory('Geral')}
+                />
                 
                 <div className="flex flex-col gap-2 min-h-0">
                   <div className="flex-1 min-h-0">
-                    <InventorySection title="RELÍQUIAS" slots={5} gridCols="grid-cols-5 grid-rows-1" icon={<Crown size={10}/>} color="amber" />
+                    <InventorySection 
+                      title="RELÍQUIAS" 
+                      slots={5} 
+                      gridCols="grid-cols-5 grid-rows-1" 
+                      icon={<Crown size={10}/>} 
+                      color="amber" 
+                      onClick={() => openInventory('Relíquias')}
+                    />
                   </div>
                   <div className="flex-1 min-h-0">
-                    <InventorySection title="CONSUMÍVEIS" slots={5} gridCols="grid-cols-5 grid-rows-1" icon={<FlaskConical size={10}/>} color="emerald" />
+                    <InventorySection 
+                      title="CONSUMÍVEIS" 
+                      slots={5} 
+                      gridCols="grid-cols-5 grid-rows-1" 
+                      icon={<FlaskConical size={10}/>} 
+                      color="emerald" 
+                      onClick={() => openInventory('Consumíveis')}
+                    />
                   </div>
                 </div>
              </div>
@@ -207,6 +238,11 @@ const PlayerStatusWindow: React.FC<Props> = ({
         onUnequip={onUnequipItem} 
         onStartTrial={onStartTrial} 
       />
+      <InventoryBrowserModal 
+        isOpen={inventoryModal.isOpen}
+        onClose={() => setInventoryModal({ ...inventoryModal, isOpen: false })}
+        type={inventoryModal.type}
+      />
       {selectedWeaponDetail && (
         <WeaponDetailModal 
           weapon={selectedWeaponDetail} 
@@ -226,7 +262,7 @@ const PlayerStatusWindow: React.FC<Props> = ({
   );
 };
 
-const InventorySection = ({ title, slots, gridCols, icon, color }: any) => {
+const InventorySection = ({ title, slots, gridCols, icon, color, onClick }: any) => {
   const colorMap: any = {
     blue: 'text-blue-400 border-blue-500/60 hover:text-white',
     emerald: 'text-emerald-400 border-emerald-500/60 hover:text-white',
@@ -235,7 +271,10 @@ const InventorySection = ({ title, slots, gridCols, icon, color }: any) => {
   };
 
   return (
-    <div className="h-full bg-[#030712] border border-slate-800 flex flex-col rounded-sm shadow-xl min-h-0 overflow-hidden">
+    <div 
+      onClick={onClick}
+      className={`h-full bg-[#030712] border border-slate-800 flex flex-col rounded-sm shadow-xl min-h-0 overflow-hidden transition-all ${onClick ? 'cursor-pointer hover:border-slate-600' : ''}`}
+    >
       <div className="p-1.5 bg-black/40 border-b border-slate-800 flex items-center justify-between h-[30px] flex-shrink-0">
         <div className="flex items-center gap-2">
           <span className={colorMap[color].split(' ')[0]}>{icon}</span>
