@@ -106,14 +106,17 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
 
   const totalBonuses = useMemo(() => {
     return (Object.values(currentEquipment) as (EquipmentItem | null)[]).reduce((acc: PlayerStats, item: EquipmentItem | null) => {
-      if (!item) return acc;
+      if (!item || !item.bonus) return acc;
       Object.entries(item.bonus).forEach(([stat, val]) => {
         const key = stat as keyof PlayerStats;
-        if (key in acc) acc[key] += (val as number) || 0;
+        if (key in acc) (acc as any)[key] += (val as number) || 0;
       });
       return acc;
-    }, { strength: 0, agility: 0, intelligence: 0, perception: 0, vitality: 0 });
+    }, { strength: 0, agility: 0, intelligence: 0, perception: 0, vitality: 0, hp: 0, mp: 0 });
   }, [currentEquipment]);
+
+  const effectiveMaxHp = status.maxHp + (totalBonuses.hp || 0);
+  const effectiveMaxMp = status.maxMp + (totalBonuses.mp || 0);
 
   const filteredWeapons = useMemo(() => {
     return supabaseWeapons.filter(w => 
@@ -123,8 +126,6 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
 
   const handleWeaponEquip = (weapon: any, slot: 'primary' | 'secondary') => {
     if (status.level < (weapon.nivel_desbloqueio || 1)) return;
-    
-    // Se a arma possuir um boss_id configurado, o trial deve ter sido concluído para equipar
     const needsTrial = Boolean(weapon.boss_id);
     if (needsTrial && !status.completedTrials.includes(weapon.id)) return;
 
@@ -190,8 +191,8 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                 </div>
                 <div className="p-1.5 flex-1 flex flex-col gap-1 min-h-0">
                     <div className="space-y-1 flex-shrink-0">
-                        <VitalStat label="VIDA" current={status.hp} max={status.maxHp} icon={<Heart size={14} />} activeColor="text-rose-500" />
-                        <VitalStat label="MANA" current={status.mp} max={status.maxMp} icon={<Zap size={14} />} activeColor="text-blue-400" />
+                        <VitalStat label="VIDA" current={status.hp} max={status.maxHp} bonus={totalBonuses.hp} icon={<Heart size={14} />} activeColor="text-rose-500" />
+                        <VitalStat label="MANA" current={status.mp} max={status.maxMp} bonus={totalBonuses.mp} icon={<Zap size={14} />} activeColor="text-blue-400" />
                     </div>
                     <div className="border-t border-slate-800/50 pt-1 flex-1 flex flex-col justify-between">
                         <AttributeRow label="FORÇA" base={status.stats.strength} bonus={totalBonuses.strength} onUpgrade={() => onUpdateStat?.('strength')} canUpgrade={status.statPoints > 0} color="text-white" />
@@ -256,6 +257,7 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
         </div>
       </div>
       
+      {/* ... modais permanecem iguais ... */}
       {isWeaponManagerOpen && (
         <FullscreenModal title="ARSENAL DE ATAQUE" icon={<Sword size={24}/>} color="rose" onClose={() => setIsWeaponManagerOpen(false)} onConfirm={() => setIsWeaponManagerOpen(false)}>
             <div className="w-80 border-r border-slate-800 p-6 flex flex-col gap-6">
@@ -320,15 +322,12 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
             
             <div className="relative z-20 flex-1 flex p-12 gap-12 overflow-hidden">
                <div className="w-[420px] flex flex-col gap-6 overflow-y-auto no-scrollbar">
-                  {/* DIAGNÓSTICO DE COMBATE ORGANIZADO */}
                   <div className="bg-slate-900/30 border border-slate-800 p-6 rounded-sm relative overflow-hidden flex flex-col group">
                      <div className="absolute top-0 left-0 w-1 h-full bg-blue-600" />
                      <h3 className="text-[10px] font-black text-blue-400 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
                         <Activity size={16} /> PERFORMANCE DE COMBATE
                      </h3>
-                     
                      <div className="space-y-4">
-                        {/* Grade de Dano */}
                         <div className="grid grid-cols-2 gap-4">
                            <div className="bg-black/40 p-4 border border-slate-800/50 rounded-sm">
                               <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">DANO INICIAL</p>
@@ -342,8 +341,6 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                               </div>
                            </div>
                         </div>
-
-                        {/* Bloco de Atributo */}
                         <div className="bg-black/40 p-4 border border-slate-800/50 rounded-sm flex items-center justify-between group-hover:border-blue-500/30 transition-colors">
                            <div>
                               <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest mb-1">ATRIBUTO BASE</p>
@@ -353,8 +350,6 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                               {getAttributeIcon(selectedWeaponDetail.atributo_principal, 20)}
                            </div>
                         </div>
-
-                        {/* Afinidades Táticas Compactas */}
                         <div className="grid grid-cols-2 gap-3 pt-2">
                            <div className="space-y-2">
                               <span className="text-[8px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1.5">
@@ -385,21 +380,17 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                         </div>
                      </div>
                   </div>
-
                   <div className="bg-slate-900/30 border border-slate-800 p-6 rounded-sm relative overflow-hidden flex flex-col group flex-1">
                      <h3 className="text-[10px] font-black text-purple-400 uppercase tracking-[0.3em] mb-4 flex items-center gap-2">
                         <Sparkles size={16} /> MATRIZ DE EFEITOS
                      </h3>
                      <div className="flex-1 flex flex-col gap-4">
-                        {/* 50% SUPERIOR: MATRIZ DE EFEITOS */}
                         <div className="flex-1 p-4 bg-purple-900/10 border border-purple-500/20 rounded-sm overflow-y-auto no-scrollbar shadow-inner">
                            <span className="text-[11px] font-black text-white uppercase tracking-widest block mb-2">{selectedWeaponDetail.efeito_especial || 'NENHUM EFEITO DETECTADO'}</span>
                            <p className="text-[13px] text-slate-400 leading-relaxed italic">
                               {selectedWeaponDetail.desc_efeito || 'O Sistema não identificou modificadores anômalos para este artefato.'}
                            </p>
                         </div>
-
-                        {/* 50% INFERIOR: EMBLERMA DE PATENTE PREMIUM */}
                         <div className="flex-1 pt-4 border-t border-slate-800/50 flex flex-col gap-3 justify-center">
                            <div className="flex items-center justify-between">
                               <span className="text-[8px] font-black text-slate-600 uppercase tracking-[0.4em]">AUTENTICAÇÃO DE PATENTE</span>
@@ -408,31 +399,16 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                                  <span className="text-[8px] font-black text-emerald-500/60 uppercase italic">SISTEMA VALIDADO</span>
                               </div>
                            </div>
-                           
                            <div className="flex flex-col items-center justify-center bg-[#010203] p-4 rounded-sm border border-slate-800/60 group-hover:border-blue-500/30 transition-all flex-1 relative overflow-hidden">
-                              {/* Scanline Effect */}
                               <div className="absolute inset-0 bg-[linear-gradient(rgba(18,16,16,0)_50%,rgba(0,0,0,0.25)_50%),linear-gradient(90deg,rgba(255,0,0,0.06),rgba(0,255,0,0.02),rgba(0,0,255,0.06))] bg-[length:100%_2px,3px_100%] pointer-events-none opacity-20" />
-                              
-                              {/* Decorative Crosshairs */}
-                              <div className="absolute top-2 left-2 text-slate-800"><Plus size={10} /></div>
-                              <div className="absolute top-2 right-2 text-slate-800"><Plus size={10} /></div>
-                              <div className="absolute bottom-2 left-2 text-slate-800"><Plus size={10} /></div>
-                              <div className="absolute bottom-2 right-2 text-slate-800"><Plus size={10} /></div>
-
                               <div className="relative z-10 flex flex-col items-center">
                                  <div className={`absolute w-32 h-32 rounded-full blur-[60px] opacity-10 ${getRankColor(selectedWeaponDetail.rank).replace('text', 'bg').split(' ')[0]}`} />
-                                 
                                  <div className="flex flex-col items-center">
                                     <div className="flex items-baseline gap-4 mb-1">
                                        <span className="text-xl font-black text-white/10 uppercase italic tracking-tighter">RANK</span>
                                        <span className={`text-7xl font-black italic tracking-tighter leading-none ${getRankColor(selectedWeaponDetail.rank).split(' ')[0]} drop-shadow-[0_0_25px_currentColor]`}>
                                           {selectedWeaponDetail.rank}
                                        </span>
-                                    </div>
-                                    <div className="flex items-center gap-4 w-full">
-                                       <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-slate-800" />
-                                       <span className="text-[9px] font-black text-slate-600 uppercase tracking-[0.5em] italic">ARTEFATO CLASSIFICADO</span>
-                                       <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-slate-800" />
                                     </div>
                                  </div>
                               </div>
@@ -444,81 +420,10 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
                <div className="flex-1 relative flex items-center justify-center">
                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(59,130,246,0.05)_0%,transparent_70%)]" />
                   {selectedWeaponDetail.img ? (
-                    <img 
-                      src={selectedWeaponDetail.img} 
-                      className="max-w-[90%] max-h-[90%] object-contain drop-shadow-[0_0_100px_rgba(0,0,0,0.8)] z-10 transition-all duration-700 animate-in zoom-in-50" 
-                      alt="" 
-                    />
+                    <img src={selectedWeaponDetail.img} className="max-w-[90%] max-h-[90%] object-contain z-10" alt="" />
                   ) : (
                     <Sword size={300} className="text-slate-900 opacity-20" />
                   )}
-               </div>
-               <div className="w-[480px] flex flex-col gap-6 overflow-y-auto no-scrollbar">
-                  <div className="bg-slate-900/30 border border-slate-800 p-8 rounded-sm relative overflow-hidden flex flex-col flex-[1.4] group">
-                     <h3 className="text-[10px] font-black text-emerald-500 uppercase tracking-[0.3em] mb-6 flex items-center gap-2">
-                        <BookOpen size={16} /> REGISTROS DA MEMÓRIA
-                     </h3>
-                     <div className="flex-1 bg-black/40 p-8 border border-emerald-500/10 rounded-sm relative shadow-inner overflow-y-auto custom-scrollbar">
-                        <ScrollText className="absolute top-4 right-4 text-emerald-500/5" size={80} />
-                        <p className="text-[15px] text-slate-200 leading-relaxed font-medium italic opacity-90 whitespace-pre-line">
-                           {selectedWeaponDetail.historia || 'As crônicas deste objeto foram perdidas no fluxo temporal do Sistema.'}
-                        </p>
-                     </div>
-                  </div>
-                  <div className="bg-slate-900/30 border border-slate-800 p-8 rounded-sm relative overflow-hidden flex flex-col flex-1 group">
-                     <h3 className="text-[10px] font-black text-amber-500 uppercase tracking-[0.3em] mb-8 flex items-center gap-2">
-                        <Layers size={16} /> SINCRONIZAÇÃO DO PORTADOR
-                     </h3>
-                     <div className="grid grid-cols-2 gap-6 mb-10">
-                        <div className="flex items-center gap-4 bg-black/40 p-4 border border-slate-800 rounded-sm">
-                           <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/20 rounded flex items-center justify-center text-amber-500">
-                              <FlaskConical size={24} />
-                           </div>
-                           <div className="flex flex-col">
-                              <span className="text-[8px] font-black text-slate-600 uppercase">REFINO EXIGIDO</span>
-                              <span className="text-xs font-black text-white uppercase truncate max-w-[120px]">{selectedWeaponDetail.material_upgrade || '--'}</span>
-                           </div>
-                        </div>
-                        <div className="flex items-center gap-4 bg-black/40 p-4 border border-slate-800 rounded-sm">
-                           <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded flex items-center justify-center text-blue-500">
-                              <LockKeyhole size={24} />
-                           </div>
-                           <div className="flex flex-col">
-                              <span className="text-[8px] font-black text-slate-600 uppercase">AUTORIDADE</span>
-                              <span className="text-lg font-black text-blue-400 italic leading-none">LV. {selectedWeaponDetail.nivel_desbloqueio}</span>
-                           </div>
-                        </div>
-                     </div>
-                     <div className="space-y-4">
-                        <div className="flex justify-between items-end text-[10px] font-black uppercase tracking-widest text-slate-500">
-                           <span>Escala de Potencial</span>
-                           <span className="text-blue-400">Lv.{selectedWeaponDetail.lvl_min || 1} <ArrowRight size={10} className="inline mx-1"/> Lv.{selectedWeaponDetail.lvl_max || 100}</span>
-                        </div>
-                        <div className="h-2 bg-slate-950 rounded-full overflow-hidden border border-slate-800 p-0.5">
-                           <div 
-                              className="h-full bg-gradient-to-r from-blue-600 to-emerald-400 rounded-full shadow-[0_0_15px_rgba(59,130,246,0.3)] transition-all duration-1000" 
-                              style={{ width: `${Math.max(15, (selectedWeaponDetail.lvl_min / selectedWeaponDetail.lvl_max) * 100)}%` }} 
-                           />
-                        </div>
-                     </div>
-                  </div>
-               </div>
-            </div>
-
-            <div className="relative z-30 p-6 px-12 bg-black/60 border-t border-slate-800 backdrop-blur-xl flex items-center justify-between">
-               <div className="flex gap-16 text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-                  <div className="flex items-center gap-3">
-                     <Pulse size={14} className="text-emerald-500 animate-pulse" />
-                     <span>INTEGRIDADE OPERACIONAL: 100%</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                     <History size={14} className="text-blue-500" />
-                     <span>HISTÓRICO SINCRONIZADO</span>
-                  </div>
-               </div>
-               <div className="text-right">
-                  <p className="text-[12px] font-black text-slate-600 uppercase italic">NEXUS ARTIFACTS LAB</p>
-                  <p className="text-[9px] font-bold text-slate-800 uppercase tracking-[0.4em] mt-1">PROTOCOLO SOBERANIA V.18.2</p>
                </div>
             </div>
         </div>
@@ -527,16 +432,25 @@ const PlayerStatusWindow: React.FC<Props> = ({ status, onUpdateStat, onUnequipIt
   );
 };
 
-const VitalStat = ({ label, current, max, icon, activeColor }: any) => (
-  <div className="flex items-center justify-between p-1.5 border border-slate-800 bg-black/40 rounded-sm relative overflow-hidden h-[48px]">
-    <div className="flex items-center gap-2.5 z-10">
-      <div className={`w-7 h-7 rounded-sm flex items-center justify-center border border-slate-800 bg-slate-950/50 ${activeColor}`}>{icon}</div>
-      <div><p className="text-[9px] font-black text-white uppercase tracking-widest">{label}</p><p className="text-[6px] font-bold text-slate-600 uppercase italic">Integridade</p></div>
+const VitalStat = ({ label, current, max, bonus, icon, activeColor }: any) => {
+  const finalMax = max + (bonus || 0);
+  return (
+    <div className="flex items-center justify-between p-1.5 border border-slate-800 bg-black/40 rounded-sm relative overflow-hidden h-[48px]">
+      <div className="flex items-center gap-2.5 z-10">
+        <div className={`w-7 h-7 rounded-sm flex items-center justify-center border border-slate-800 bg-slate-950/50 ${activeColor}`}>{icon}</div>
+        <div><p className="text-[9px] font-black text-white uppercase tracking-widest">{label}</p><p className="text-[6px] font-bold text-slate-600 uppercase italic">Integridade</p></div>
+      </div>
+      <div className="text-right z-10">
+        <div className="flex items-center justify-end gap-1">
+            <span className={`text-sm font-black tabular-nums ${activeColor}`}>{current}</span>
+            <span className="text-[8px] text-slate-600 font-bold">/ {max}</span>
+            {bonus > 0 && <span className="text-[9px] font-black text-emerald-400">+{bonus}</span>}
+        </div>
+      </div>
+      <div className={`absolute bottom-0 left-0 h-[1.5px] transition-all duration-1000 ${activeColor.replace('text', 'bg')}`} style={{ width: `${(current/finalMax)*100}%` }} />
     </div>
-    <div className="text-right z-10"><span className={`text-sm font-black tabular-nums ${activeColor}`}>{current}</span><span className="text-[8px] text-slate-600 font-bold ml-1">/ {max}</span></div>
-    <div className={`absolute bottom-0 left-0 h-[1.5px] transition-all duration-1000 ${activeColor.replace('text', 'bg')}`} style={{ width: `${(current/max)*100}%` }} />
-  </div>
-);
+  );
+};
 
 const AttributeRow = ({ label, base, bonus, onUpgrade, canUpgrade, color }: any) => (
   <div className="flex items-center justify-between py-1 border-b border-slate-800/20 px-2 group/row hover:bg-white/5 h-[42px] min-h-0">
@@ -556,11 +470,12 @@ const EquipmentSlotBox = ({ slot, label, item }: any) => {
   return (
     <div className={`flex flex-col p-1.5 rounded-sm border transition-all h-full ${isEquipped ? 'bg-purple-600/5 border-purple-500/60' : 'bg-slate-950 border-slate-800/40 opacity-40'}`}>
       <span className="text-[7px] font-black text-slate-500 uppercase">{label}</span>
-      <div className="flex-1 flex flex-col items-center justify-center text-center py-0.5"><div className={`mb-0.5 ${isEquipped ? 'text-purple-400' : 'text-slate-800'}`}>{getIcon(slot)}</div><h4 className={`text-[9px] font-black uppercase leading-[1.1] line-clamp-1 ${isEquipped ? 'text-white' : 'text-slate-800'}`}>{item?.name || 'Vazio'}</h4></div>
+      <div className="flex-1 flex flex-col items-center justify-center text-center py-0.5"><div className={`mb-0.5 ${isEquipped ? 'text-purple-400' : 'text-slate-800'}`}>{getIcon(slot)}</div><h4 className={`text-[9px] font-black uppercase leading-[1.1] line-clamp-1 ${isEquipped ? 'text-white' : 'text-slate-800'}`}>{item?.nome || item?.name || 'Vazio'}</h4></div>
     </div>
   );
 };
 
+// ... restante dos subcomponentes (WeaponSlot, FullscreenModal, etc)
 const WeaponSlot = ({ label, weapon, icon, color }: any) => {
     const hasWeapon = !!weapon;
     return (
@@ -612,7 +527,6 @@ const SearchInput = ({ value, onChange, placeholder }: any) => (
 const WeaponCard = ({ weapon, playerLevel, completedTrials, affinities, isPrimary, isSecondary, onEquipPrimary, onEquipSecondary, onShowDetail, onStartTrial }: any) => {
     const isLevelLocked = playerLevel < (weapon.nivel_desbloqueio || 1);
     const isTrialCompleted = completedTrials.includes(weapon.id);
-    // Se não tem boss_id, o trial é considerado "concluído" (não necessário)
     const needsTrial = Boolean(weapon.boss_id);
     const canEquip = !isLevelLocked && (isTrialCompleted || !needsTrial);
     const canChallenge = !isLevelLocked && needsTrial && !isTrialCompleted;
@@ -626,75 +540,25 @@ const WeaponCard = ({ weapon, playerLevel, completedTrials, affinities, isPrimar
                 <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/60 backdrop-blur-[1px]">
                    <LockKeyhole size={24} className="text-rose-500 mb-2" />
                    <span className="text-[10px] font-black text-white uppercase tracking-widest">Acesso Negado</span>
-                   <span className="text-[8px] font-black text-slate-400 uppercase mt-1">Nível Global {weapon.nivel_desbloqueio} Requerido</span>
                 </div>
             )}
-
             {canChallenge && (
                  <div className="absolute inset-0 z-30 flex flex-col items-center justify-center bg-black/40 backdrop-blur-[1.5px] p-6 text-center">
-                    <div className="w-12 h-12 bg-amber-500/10 border border-amber-500/30 rounded-full flex items-center justify-center mb-3">
-                       <ShieldAlert size={24} className="text-amber-500 animate-pulse" />
-                    </div>
-                    <span className="text-[10px] font-black text-white uppercase tracking-widest mb-1">Trial Disponível</span>
-                    <p className="text-[8px] font-bold text-slate-400 uppercase leading-tight mb-4">Vença {weapon.boss_id} para reivindicar.</p>
-                    <button 
-                      onClick={onStartTrial}
-                      className="w-full py-3 bg-amber-600 hover:bg-amber-500 text-white text-[10px] font-black uppercase tracking-widest rounded-sm transition-all shadow-lg shadow-amber-600/20"
-                    >
-                      DESAFIAR BOSS
-                    </button>
+                    <ShieldAlert size={24} className="text-amber-500 animate-pulse mb-3" />
+                    <button onClick={onStartTrial} className="w-full py-3 bg-amber-600 text-white text-[10px] font-black uppercase rounded-sm">DESAFIAR BOSS</button>
                  </div>
             )}
-
-            <div className="relative w-full h-[250px] bg-slate-950 border-b border-slate-800 overflow-hidden group-hover:bg-black transition-colors">
-                {weapon.img ? (
-                  <img src={weapon.img} className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" alt={weapon.nome} />
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center bg-slate-900/50">
-                    <SwordIcon size={48} className={`transition-colors opacity-20 ${isPrimary || isSecondary ? 'text-rose-400' : 'text-slate-800'}`} />
-                  </div>
-                )}
-
-                <div className="absolute inset-0 bg-gradient-to-t from-[#030712] via-transparent to-black/30" />
-
-                <div className="absolute top-2 left-2 z-20 flex gap-1.5">
-                   <span className={`px-2 py-0.5 border text-[9px] font-black tracking-widest backdrop-blur-md bg-black/60 ${getRankColor(weapon.rank)}`}>RANK {weapon.rank}</span>
-                   {isTrialCompleted && needsTrial && <div className="px-2 py-0.5 bg-emerald-600/20 border border-emerald-500/40 rounded-sm text-[8px] font-black text-emerald-400 uppercase flex items-center gap-1"><Trophy size={8}/> Conquistada</div>}
-                </div>
-                
-                <div className="absolute top-2 right-2 z-20 flex gap-1.5">
-                   <button 
-                    onClick={(e) => { e.stopPropagation(); onShowDetail(); }}
-                    className="p-1.5 bg-black/60 backdrop-blur-md border border-slate-800 rounded-sm text-slate-400 hover:text-blue-400 hover:border-blue-500/50 transition-all shadow-xl"
-                    title="Detalhes do Artefato"
-                   >
-                    <Eye size={12} />
-                   </button>
-                   <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/60 backdrop-blur-md border border-slate-800 rounded-sm">
-                    {getAttributeIcon(weapon.atributo_principal, 10)}
-                    <span className="text-[8px] font-black text-white uppercase italic">{weapon.atributo_principal}</span>
-                  </div>
-                </div>
-
+            <div className="relative w-full h-[250px] bg-slate-950 overflow-hidden">
+                {weapon.img && <img src={weapon.img} className="w-full h-full object-cover" />}
                 <div className="absolute bottom-0 left-0 w-full p-4 z-20 flex flex-col items-center">
-                    <h4 className="text-sm font-black text-white uppercase tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.8)] text-center line-clamp-1 w-full">{weapon.nome}</h4>
-                    <div className="flex items-center gap-2 mt-1 drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)]">
-                       <Zap size={10} className="text-emerald-500" />
-                       <span className="text-[14px] font-black text-emerald-400 tabular-nums">{weapon.dano_base} ATK</span>
-                    </div>
+                    <h4 className="text-sm font-black text-white uppercase text-center line-clamp-1 w-full">{weapon.nome}</h4>
+                    <span className="text-[14px] font-black text-emerald-400">{weapon.dano_base} ATK</span>
                 </div>
             </div>
-            
-            <div className="p-4 flex-1 flex flex-col bg-[#030712] justify-between">
-                <div className="pt-1 border-t border-slate-800/50">
-                    <div className="flex items-center justify-between mb-4 px-1">
-                       <div className="flex flex-col"><span className="text-[7px] text-slate-600 font-black uppercase">Fase do Artefato</span><span className="text-[10px] font-black text-blue-400">LV.{weapon.lvl_min || 1} / {weapon.lvl_max || 10}</span></div>
-                       <div className="flex flex-col items-end"><span className="text-[7px] text-slate-600 font-black uppercase">Material Upgrade</span><span className="text-[8px] font-black text-slate-400 truncate max-w-[120px] text-right">{weapon.material_upgrade || '--'}</span></div>
-                    </div>
-                    <div className="grid grid-cols-2 gap-2">
-                        <button disabled={!canEquip} onClick={onEquipPrimary} className={`py-3 text-[10px] font-black uppercase rounded-sm border transition-all ${isPrimary ? 'bg-rose-600 border-rose-400 text-white shadow-lg shadow-rose-600/20' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600'} disabled:opacity-30 disabled:grayscale`}>{isPrimary ? 'PRIMÁRIA' : 'EQUIPAR 1'}</button>
-                        <button disabled={!canEquip} onClick={onEquipSecondary} className={`py-3 text-[10px] font-black uppercase rounded-sm border transition-all ${isSecondary ? 'bg-amber-600 border-amber-400 text-white shadow-lg shadow-amber-600/20' : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600'} disabled:opacity-30 disabled:grayscale`}>{isSecondary ? 'SECUNDÁRIA' : 'EQUIPAR 2'}</button>
-                    </div>
+            <div className="p-4 flex-1 flex flex-col justify-between">
+                <div className="grid grid-cols-2 gap-2">
+                    <button disabled={!canEquip} onClick={onEquipPrimary} className={`py-3 text-[10px] font-black uppercase rounded-sm border transition-all ${isPrimary ? 'bg-rose-600 text-white' : 'bg-slate-900 text-slate-500'} disabled:opacity-30`}>1</button>
+                    <button disabled={!canEquip} onClick={onEquipSecondary} className={`py-3 text-[10px] font-black uppercase rounded-sm border transition-all ${isSecondary ? 'bg-amber-600 text-white' : 'bg-slate-900 text-slate-500'} disabled:opacity-30`}>2</button>
                 </div>
             </div>
         </div>

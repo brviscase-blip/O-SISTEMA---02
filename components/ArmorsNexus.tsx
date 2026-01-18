@@ -6,7 +6,7 @@ import {
   CheckCircle2, ChevronDown, ShieldCheck, Box,
   Dumbbell, Zap, Brain, Activity, Eye, X,
   ShieldAlert, ShieldQuestion, TrendingUp, TrendingDown,
-  Waves, Flame, Snowflake, Sparkles, Ghost
+  Waves, Flame, Snowflake, Sparkles, Ghost, Heart
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
 
@@ -30,13 +30,15 @@ const getAttributeIcon = (attr: string, size = 14) => {
     case 'FORÇA': return <Dumbbell size={size} />;
     case 'AGILIDADE': return <Zap size={size} />;
     case 'INTELIGÊNCIA': return <Brain size={size} />;
-    case 'VITALIDADE': return <Heart size={size} />;
+    case 'VITALIDADE': return <HeartIcon size={size} />;
     case 'PERCEPÇÃO': return <Eye size={size} />;
+    case 'HP': return <HeartIcon size={size} className="text-rose-500" />;
+    case 'MP': return <Zap size={size} className="text-blue-500" />;
     default: return <Activity size={size} />;
   }
 };
 
-const Heart = ({ size, className }: { size: number, className?: string }) => (
+const HeartIcon = ({ size, className }: { size: number, className?: string }) => (
     <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className={className}><path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/></svg>
 );
 
@@ -53,10 +55,10 @@ const ArmorsNexus: React.FC = () => {
   const [editingId, setEditingId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Definição das listas específicas de acordo com a imagem
   const vantagemOptions = ['NENHUMA', 'SOM (RUÍDOS)', 'CORTE', 'ATRITO', 'PERFURAÇÃO', 'TERRENO IRREGULAR', 'INSTABILIDADE'];
   const fraquezaOptions = ['NENHUMA', 'LUZ (CLARÃO)', 'IMPACTO', 'FOGO', 'GELO', 'LAMA', 'MALDIÇÃO'];
   const attributeOptions = ['FORÇA', 'AGILIDADE', 'INTELIGÊNCIA', 'VITALIDADE', 'PERCEPÇÃO'];
+  const bonusTargetOptions = ['FORÇA', 'AGILIDADE', 'INTELIGÊNCIA', 'VITALIDADE', 'PERCEPÇÃO', 'HP', 'MP'];
   const slotOptions = ['CABEÇA', 'PEITORAL', 'MÃOS', 'PERNAS', 'PÉS', 'ANEL'];
 
   const initialFormState = {
@@ -64,7 +66,9 @@ const ArmorsNexus: React.FC = () => {
     rank: 'E', 
     slot: 'PEITORAL', 
     atributo: 'VITALIDADE',
-    bonus_status: '',
+    bonus_label: '', // Ex: "+10 HP"
+    bonus_target: 'HP', 
+    bonus_value: 0,
     vantagem_defensiva: 'NENHUMA',
     fraqueza_defensiva: 'NENHUMA',
     descricao_lore: '', 
@@ -116,8 +120,19 @@ const ArmorsNexus: React.FC = () => {
     if (!client || !formData.nome.trim()) return;
     setIsSaving(true);
     try {
-      const { ...data } = formData as any;
-      const payload = { ...data };
+      const { bonus_target, bonus_value, bonus_label, ...data } = formData;
+      
+      // Mapeamento matemático para o banco de dados
+      const statMap: Record<string, string> = {
+          'FORÇA': 'strength', 'AGILIDADE': 'agility', 'INTELIGÊNCIA': 'intelligence',
+          'VITALIDADE': 'vitality', 'PERCEPÇÃO': 'perception', 'HP': 'hp', 'MP': 'mp'
+      };
+
+      const payload = { 
+          ...data,
+          bonus_status: bonus_label || `+${bonus_value} ${bonus_target}`,
+          bonus: { [statMap[bonus_target]]: Number(bonus_value) }
+      };
       
       if (editingId) {
         const { error } = await client.from('armaduras').update(payload).eq('id', editingId);
@@ -133,29 +148,23 @@ const ArmorsNexus: React.FC = () => {
       alert('Sincronização de Proteção Concluída.');
     } catch (err) { 
         console.error(err);
-        alert('Falha na recalibração do Nexus.'); 
+        alert('Falha na recalibração.'); 
     } finally { 
         setIsSaving(false); 
     }
   };
 
   const deleteRecord = async (id: string) => {
-    if (!window.confirm("CONFIRMAR EXPURGO DEFINITIVO DESTA ARMADURA?")) return;
+    if (!window.confirm("CONFIRMAR EXPURGO?")) return;
     const client = getSupabaseClient();
     if (!client) return;
     try {
         const { error } = await client.from('armaduras').delete().eq('id', id);
         if (error) throw error;
         fetchData();
-        alert("Peça Expurmada.");
     } catch (err) {
         alert("Erro ao apagar registro.");
     }
-  };
-
-  const cancelEdit = () => {
-    setFormData(initialFormState);
-    setEditingId(null);
   };
 
   return (
@@ -169,7 +178,7 @@ const ArmorsNexus: React.FC = () => {
         </button>
       </div>
 
-      {subTab === 'LISTA' ? (
+      {subTab === 'LISTA' && (
         <div className="space-y-8">
           <div className="bg-[#030712] border border-slate-800 p-6 rounded-sm relative shadow-2xl overflow-hidden">
             <div className={`absolute top-0 left-0 w-1 h-full ${editingId ? 'bg-amber-500' : 'bg-blue-600'}`} />
@@ -180,7 +189,6 @@ const ArmorsNexus: React.FC = () => {
             </h3>
             
             <form onSubmit={handleSave} className="space-y-8">
-              {/* LINHA 1: IDENTIFICAÇÃO E ATRIBUTO */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5">
                 <div className="md:col-span-4"><FormGroup label="NOME DO ITEM" value={formData.nome} onChange={(v:any) => setFormData({...formData, nome:v})} /></div>
                 <div className="md:col-span-2"><FormGroup label="RANK" type="select" options={['S','A','B','C','D','E']} value={formData.rank} onChange={(v:any) => setFormData({...formData, rank:v})} /></div>
@@ -188,85 +196,62 @@ const ArmorsNexus: React.FC = () => {
                 <div className="md:col-span-3"><FormGroup label="ATRIBUTO FOCO" type="select" options={attributeOptions} value={formData.atributo} onChange={(v:any) => setFormData({...formData, atributo:v})} /></div>
               </div>
 
-              {/* LINHA 2: RESISTÊNCIAS E STATUS */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 border-t border-slate-800/50 pt-8">
-                <div className="md:col-span-3"><FormGroup label="BÔNUS STATUS" value={formData.bonus_status} onChange={(v:any) => setFormData({...formData, bonus_status:v})} placeholder="Ex: +15 Vitalidade" /></div>
+                <div className="md:col-span-3"><FormGroup label="TEXTO DO BÔNUS (UI)" value={formData.bonus_label} onChange={(v:any) => setFormData({...formData, bonus_label:v})} placeholder="Ex: +10 Mana" /></div>
+                <div className="md:col-span-2"><FormGroup label="ALVO TÉCNICO" type="select" options={bonusTargetOptions} value={formData.bonus_target} onChange={(v:any) => setFormData({...formData, bonus_target:v})} /></div>
+                <div className="md:col-span-1"><FormGroup label="VALOR" type="number" value={formData.bonus_value} onChange={(v:any) => setFormData({...formData, bonus_value:v})} /></div>
+                
                 <div className="md:col-span-3"><FormGroup label="VANTAGEM DEFENSIVA" type="select" options={vantagemOptions} value={formData.vantagem_defensiva} onChange={(v:any) => setFormData({...formData, vantagem_defensiva:v})} /></div>
                 <div className="md:col-span-3"><FormGroup label="FRAQUEZA DEFENSIVA" type="select" options={fraquezaOptions} value={formData.fraqueza_defensiva} onChange={(v:any) => setFormData({...formData, fraqueza_defensiva:v})} /></div>
-                <div className="md:col-span-3"><FormGroup label="BOSS TRIAL ID" value={formData.boss_trial_id} onChange={(v:any) => setFormData({...formData, boss_trial_id:v})} placeholder="Ex: boss-id-01" /></div>
               </div>
 
-              {/* LINHA 3: LORE E VISUAL */}
               <div className="grid grid-cols-1 md:grid-cols-12 gap-5 border-t border-slate-800/50 pt-8">
-                <div className="md:col-span-9"><FormGroup label="DESCRIÇÃO (LORE E IMAGINAÇÃO)" type="textarea" value={formData.descricao_lore} onChange={(v:any) => setFormData({...formData, descricao_lore:v})} /></div>
+                <div className="md:col-span-3"><FormGroup label="BOSS TRIAL ID" value={formData.boss_trial_id} onChange={(v:any) => setFormData({...formData, boss_trial_id:v})} /></div>
+                <div className="md:col-span-6"><FormGroup label="DESCRIÇÃO (LORE E IMAGINAÇÃO)" type="textarea" value={formData.descricao_lore} onChange={(v:any) => setFormData({...formData, descricao_lore:v})} /></div>
                 <div className="md:col-span-3 flex flex-col gap-4">
                     <div className="flex flex-col gap-2">
-                        <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">IMG VISUAL (.PNG)</label>
+                        <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1">VISUAL (.PNG)</label>
                         <div onClick={() => !isUploading && fileInputRef.current?.click()} className={`w-full h-12 bg-slate-950 border border-slate-800 rounded-sm flex items-center px-4 cursor-pointer hover:border-blue-500 transition-all ${formData.img ? 'border-emerald-500/50' : ''}`}>
                             <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
                             <div className="flex items-center justify-between w-full">
-                                <span className="text-[10px] font-bold text-slate-600 truncate">{isUploading ? 'SINCRONIZANDO...' : formData.img ? 'UPLOAD OK' : 'SELECIONAR'}</span>
-                                {formData.img && <div className="w-8 h-8 rounded-sm border border-slate-800 overflow-hidden shadow-lg"><img src={formData.img} className="w-full h-full object-cover" /></div>}
+                                <span className="text-[10px] font-bold text-slate-600 truncate">{isUploading ? 'SYNC...' : formData.img ? 'OK' : 'SELECT'}</span>
+                                {formData.img && <div className="w-8 h-8 rounded-sm border border-slate-800 overflow-hidden"><img src={formData.img} className="w-full h-full object-cover" /></div>}
                             </div>
                         </div>
                     </div>
-                    <div className="flex-1 flex flex-col gap-2">
-                        <button disabled={isSaving || isUploading} className={`w-full h-full ${editingId ? 'bg-amber-600 hover:bg-amber-500' : 'bg-blue-600 hover:bg-blue-500'} text-white text-[11px] font-black uppercase flex flex-col items-center justify-center gap-2 transition-all rounded-sm shadow-xl active:scale-95 min-h-[64px]`}>
-                            {isSaving ? <Loader2 className="animate-spin" size={20}/> : <Shield size={20}/>} {editingId ? 'ATUALIZAR' : 'REGISTRAR'}
-                        </button>
-                        {editingId && (
-                            <button type="button" onClick={cancelEdit} className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-400 text-[9px] font-black uppercase transition-all rounded-sm">CANCELAR</button>
-                        )}
-                    </div>
+                    <button disabled={isSaving || isUploading} className={`w-full h-12 ${editingId ? 'bg-amber-600' : 'bg-blue-600'} text-white text-[11px] font-black uppercase transition-all rounded-sm shadow-xl active:scale-95`}>
+                        {isSaving ? <Loader2 className="animate-spin" size={20}/> : editingId ? 'ATUALIZAR' : 'REGISTRAR'}
+                    </button>
+                    {editingId && <button type="button" onClick={() => { setEditingId(null); setFormData(initialFormState); }} className="w-full py-2 bg-slate-800 text-[9px] font-black uppercase text-slate-500 rounded-sm">CANCELAR</button>}
                 </div>
               </div>
             </form>
           </div>
 
-          {/* LISTAGEM DE ITENS */}
           <div className="flex flex-col gap-3">
-             <div className="bg-slate-900/30 border border-slate-800/50 h-10 flex items-center px-6 rounded-sm w-full font-black text-[9px] text-slate-500 uppercase tracking-widest">
-                <div className="w-[20%]">ARTEFATO DE DEFESA</div>
-                <div className="w-[10%] text-center">RANK / SLOT</div>
-                <div className="w-[10%] text-center">ATRIB. FOCO</div>
-                <div className="w-[12%] text-center">BÔNUS</div>
-                <div className="w-[15%] text-center">VANTAGEM / FRAQUEZA</div>
-                <div className="w-[12%] text-center">TRIAL BOSS</div>
-                <div className="w-[13%]">REGISTRO LORE</div>
-                <div className="w-[8%] text-right pr-4">AÇÕES</div>
-             </div>
-
              {items.map(item => {
                 const theme = getRankClass(item.rank);
                 return (
                   <div key={item.id} className="bg-[#030712] border border-slate-800 h-28 flex items-center px-6 group hover:border-slate-600 transition-all relative overflow-hidden rounded-sm w-full shadow-lg">
                     <div className={`absolute left-0 top-0 h-full w-1 ${theme.border}`} />
-                    
                     <div className="w-[20%] flex items-center gap-4">
-                       <div className="w-16 h-16 bg-slate-950 border border-slate-800 rounded-sm flex items-center justify-center overflow-hidden flex-shrink-0 shadow-inner group-hover:border-blue-500/40 transition-colors">
+                       <div className="w-16 h-16 bg-slate-950 border border-slate-800 rounded-sm flex items-center justify-center overflow-hidden flex-shrink-0 shadow-inner group-hover:border-blue-500/40">
                           {item.img ? <img src={item.img} className="w-full h-full object-cover" /> : <Shield size={24} className="text-slate-800" />}
                        </div>
                        <div className="flex flex-col min-w-0">
                           <h4 className="text-[12px] font-black text-white uppercase italic tracking-tighter truncate leading-tight">{item.nome}</h4>
-                          <span className="text-[8px] font-bold text-slate-600 uppercase mt-1 tracking-widest">PROTOCOLO #{item.id.substring(0,4)}</span>
+                          <span className="text-[8px] font-bold text-slate-600 uppercase mt-1">PROTOCOLO #{item.id.substring(0,4)}</span>
                        </div>
                     </div>
-                    
-                    <div className="w-[10%] text-center flex flex-col gap-1">
-                       <span className={`text-xl font-black ${theme.text} italic drop-shadow-[0_0_8px_currentColor]`}>{item.rank}</span>
-                       <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">{item.slot}</span>
-                    </div>
-                    
+                    <div className="w-[10%] text-center"><span className={`text-xl font-black ${theme.text} italic drop-shadow-[0_0_8px_currentColor]`}>{item.rank}</span></div>
                     <div className="w-[10%] text-center flex flex-col items-center">
                        <div className="text-blue-400 mb-1">{getAttributeIcon(item.atributo || 'VITALIDADE', 14)}</div>
                        <span className="text-[8px] font-black text-white uppercase tracking-tighter">{item.atributo || 'VITALIDADE'}</span>
                     </div>
-
                     <div className="w-[12%] text-center">
                        <span className="text-[11px] font-black text-emerald-400 italic tabular-nums">{item.bonus_status || 'N/A'}</span>
                        <span className="text-[7px] font-bold text-slate-600 uppercase block">MODIFICADOR</span>
                     </div>
-
                     <div className="w-[15%] text-center flex items-center justify-center gap-4">
                        <div className="flex flex-col items-center gap-1 min-w-[60px]">
                           <TrendingUp size={12} className="text-emerald-500" />
@@ -278,42 +263,17 @@ const ArmorsNexus: React.FC = () => {
                           <span className="text-[7px] font-black text-rose-500 uppercase text-center leading-tight">{item.fraqueza_defensiva || '---'}</span>
                        </div>
                     </div>
-
-                    <div className="w-[12%] text-center flex flex-col items-center gap-1">
-                       <div className={`flex items-center gap-1 px-2 py-0.5 rounded-sm border ${item.boss_trial_id ? 'border-amber-500/20 text-amber-500 bg-amber-500/5' : 'border-slate-800 text-slate-700'}`}>
-                          <Target size={10} />
-                          <span className="text-[8px] font-black uppercase truncate max-w-[80px]">{item.boss_trial_id || 'N/A'}</span>
-                       </div>
-                    </div>
-
                     <div className="w-[13%] px-4 border-l border-slate-800/50">
-                       <p className="text-[9px] text-slate-500 italic line-clamp-3 leading-relaxed">{item.descricao_lore || 'Nenhum registro encontrado.'}</p>
+                       <p className="text-[9px] text-slate-500 italic line-clamp-3 leading-relaxed">{item.descricao_lore || 'Sem registro.'}</p>
                     </div>
-
-                    <div className="w-[8%] flex items-center justify-end gap-2 pr-2">
-                       <button 
-                         onClick={() => { setEditingId(item.id); setFormData({...item}); window.scrollTo({top: 0, behavior: 'smooth'}); }} 
-                         className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-amber-500 hover:border-amber-500/40 transition-all"
-                       >
-                         <Edit3 size={16}/>
-                       </button>
-                       <button 
-                         onClick={() => deleteRecord(item.id)} 
-                         className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-rose-500 hover:border-rose-500/40 transition-all"
-                       >
-                         <Trash2 size={16}/>
-                       </button>
+                    <div className="w-[10%] flex items-center justify-end gap-2 pr-2">
+                       <button onClick={() => { setEditingId(item.id); setFormData({...item, bonus_target: Object.keys(item.bonus || {})[0]?.toUpperCase() === 'HP' ? 'HP' : 'FORÇA', bonus_value: Object.values(item.bonus || {})[0] as number}); window.scrollTo({top: 0, behavior: 'smooth'}); }} className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-amber-500 transition-all"><Edit3 size={16}/></button>
+                       <button onClick={() => deleteRecord(item.id)} className="p-2.5 bg-slate-900 border border-slate-800 rounded-sm text-slate-400 hover:text-rose-500 transition-all"><Trash2 size={16}/></button>
                     </div>
                   </div>
                 );
              })}
           </div>
-        </div>
-      ) : (
-        <div className="flex flex-col items-center justify-center py-24 bg-[#030712] border border-slate-800 rounded-sm">
-           <Box size={56} className="text-emerald-900/40 mb-6 animate-pulse" />
-           <h4 className="text-sm font-black text-emerald-500 uppercase tracking-[0.4em]">Módulo em Calibração</h4>
-           <p className="text-[10px] text-slate-600 font-bold uppercase mt-3 tracking-[0.2em] italic opacity-60">Sincronia de Matriz Ativa em breve.</p>
         </div>
       )}
     </div>

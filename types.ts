@@ -10,6 +10,8 @@ export interface PlayerStats {
   intelligence: number;
   perception: number;
   vitality: number;
+  hp?: number; // Bônus direto de HP
+  mp?: number; // Bônus direto de MP
 }
 
 export interface PlayerStatus {
@@ -30,11 +32,24 @@ export interface PlayerStatus {
   inventory: any[];
   selectedCards: string[]; 
   milestones: Milestone[];
-  completedTrials: string[]; // IDs das armas conquistadas em Trials
+  completedTrials: string[];
   isDebilitated?: boolean;
   isJobQuestActive?: boolean;
 }
 
+export interface EquipmentItem {
+  id: string;
+  nome: string; // Alinhado com banco
+  name?: string; // Fallback
+  rank: ItemRank;
+  slot: string;
+  bonus: Partial<PlayerStats>;
+  bonus_status?: string; // Texto para UI
+  description: string;
+  img: string;
+}
+
+// ... restante do arquivo permanece igual
 export interface Habit {
   id: string;
   name: string;
@@ -126,15 +141,6 @@ export interface Folder {
 }
 
 export type EquipmentSlot = 'head' | 'chest' | 'hands' | 'legs' | 'feet' | 'ring';
-export interface EquipmentItem {
-  id: string;
-  name: string;
-  rank: ItemRank;
-  slot: string;
-  bonus: Partial<PlayerStats>;
-  description: string;
-  icon: string;
-}
 
 export interface Quest {
   id: string;
