@@ -307,7 +307,8 @@ const ArmorsNexus: React.FC = () => {
   );
 };
 
-const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, slotName: string, existingPiece: any, onSaved: () => void }) => {
+// Updated: Updated type of props to include key and allow Promise in onSaved to fix type errors
+const PieceSlotForm = ({ set, slotName, existingPiece, onSaved }: { set: any, slotName: string, existingPiece: any, onSaved: () => void | Promise<void>, key?: string }) => {
   const [isSaving, setIsSaving] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);

@@ -27,10 +27,10 @@ const DashboardView: React.FC<DashboardViewProps> = ({ demands }) => {
     }
   };
 
-  // Fixed: typed useMemo return and reduce accumulator to resolve 'unknown[]' and '{}' property missing errors
+  // Fixed: typed reduce accumulator and removed generic type argument to avoid untyped function call error
   const processedStats = useMemo((): MemberStats[] => {
     const now = new Date();
-    const stats = demands.reduce<Record<string, MemberStats>>((acc, demand) => {
+    const stats = demands.reduce((acc: Record<string, MemberStats>, demand) => {
       const resp = demand.responsible;
       if (!acc[resp]) {
         acc[resp] = {

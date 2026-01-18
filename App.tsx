@@ -10,100 +10,126 @@ import PunishmentZone from './components/PunishmentZone';
 import EvolutionModal from './components/EvolutionModal';
 import RankSelector from './components/RankSelector';
 import AdminSettings from './components/AdminSettings';
+import AuthScreen from './components/AuthScreen';
 import NotificationSystem, { Notification, NotificationType } from './components/NotificationSystem';
+import { supabase } from './supabaseClient';
 import { ViewType, PlayerStatus, ItemRank } from './types';
+import { Loader2 } from 'lucide-react';
 
 // Fórmulas da "Espinha Dorsal"
 const getXPNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
 const getMaxDungeonHP = (lvl: number) => 100 + (lvl * 15);
-const getRankByLevel = (lvl: number): ItemRank => {
-  if (lvl <= 100) return 'E';
-  if (lvl <= 250) return 'D';
-  if (lvl <= 450) return 'C';
-  if (lvl <= 650) return 'B';
-  if (lvl <= 850) return 'A';
-  return 'S';
-};
-const getMaxGlobalHPByRank = (rank: ItemRank) => {
-  const map = { 'E': 100, 'D': 200, 'C': 300, 'B': 400, 'A': 500, 'S': 600 };
-  return map[rank] || 100;
-};
 
 const App: React.FC = () => {
+  const [session, setSession] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
   const [activeView, setActiveView] = useState<ViewType>('SISTEMA');
   const [selectedRank, setSelectedRank] = useState<ItemRank | null>(null);
   const [playerStatus, setPlayerStatus] = useState<PlayerStatus | null>(null);
   const [evolutionData, setEvolutionData] = useState<any>(null);
   const [isAdminOpen, setIsAdminOpen] = useState(false);
   const [history, setHistory] = useState<Notification[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // Inicialização Calibrada
+  // 1. Gerenciamento de Sessão Auth
   useEffect(() => {
-    if (!selectedRank) return;
-    const rankKey = `rank_${selectedRank}_status`;
-    const saved = localStorage.getItem(rankKey);
-    
-    if (saved) {
-      setPlayerStatus(JSON.parse(saved));
-    } else {
-      const initialLvl = 1;
-      const initialRank = getRankByLevel(initialLvl);
-      const maxGlobal = getMaxGlobalHPByRank(initialRank);
-      const maxDungeon = getMaxDungeonHP(initialLvl);
-      
-      setPlayerStatus({
-        level: initialLvl, xp: 0, maxXp: getXPNeeded(initialLvl),
-        rank: initialRank, job: 'Iniciante', title: 'LEVELING...',
-        hp: maxGlobal, maxHp: maxGlobal, 
-        dungeon_hp: maxDungeon, max_dungeon_hp: maxDungeon,
-        mp: 50, maxMp: 50, gold: 0, statPoints: 0,
-        stats: { strength: 10, agility: 10, intelligence: 10, perception: 10, vitality: 10 },
-        equipment: {}, inventory: [], milestones: [],
-        completedTrials: [], isPunished: false, criticalFailureCount: 0
-      });
-    }
-  }, [selectedRank]);
-
-  // Motor de Progressão e Sobrevivência
-  const handleUpdatePlayer = (updates: Partial<PlayerStatus>) => {
-    setPlayerStatus(prev => {
-      if (!prev) return null;
-      let next = { ...prev, ...updates };
-
-      // Lógica de Dano Percentual Global
-      if (updates.hp !== undefined && next.hp <= 0 && !next.isPunished) {
-        next.hp = 0;
-        next.isPunished = true;
-        addNotification("SISTEMA: VITALIDADE ZERADA. PUNIÇÃO IMINENTE.", "error");
-      }
-
-      // Lógica de XP e Level Up Automática
-      if (updates.xp !== undefined && next.xp >= next.maxXp) {
-        while (next.xp >= next.maxXp) {
-          next.xp -= next.maxXp;
-          next.level += 1;
-          next.maxXp = getXPNeeded(next.level);
-          next.statPoints += 5;
-          next.max_dungeon_hp = getMaxDungeonHP(next.level);
-          next.dungeon_hp = next.max_dungeon_hp; // Cura combate no level up
-
-          // Mudança de Rank Automática
-          const newRank = getRankByLevel(next.level);
-          if (newRank !== next.rank) {
-            const oldRank = next.rank;
-            next.rank = newRank;
-            next.maxHp = getMaxGlobalHPByRank(newRank);
-            next.hp = next.maxHp; // Cura global no rank up
-            setEvolutionData({ type: 'RANK', oldValue: oldRank, newValue: newRank, rewards: [`MAX HP GLOBAL: ${next.maxHp}`, "Desbloqueio de Novas Áreas"] });
-          } else {
-            setEvolutionData({ type: 'LEVEL', oldValue: next.level - 1, newValue: next.level, rewards: ["+5 Atributos", `+15 HP Dungeon`] });
-          }
-        }
-      }
-
-      localStorage.setItem(`rank_${next.rank}_status`, JSON.stringify(next));
-      return next;
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setSession(session);
+      setLoading(false);
     });
+
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
+      setSession(session);
+      if (!session) {
+        setProfile(null);
+        setPlayerStatus(null);
+        setSelectedRank(null);
+      }
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  // 2. Carregar Perfil Global
+  useEffect(() => {
+    if (!session?.user?.id) return;
+
+    const fetchProfile = async () => {
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', session.user.id)
+        .single();
+
+      if (data) {
+        setProfile(data);
+      }
+    };
+
+    fetchProfile();
+  }, [session]);
+
+  // 3. Sincronização de Instância de Rank
+  const loadRankDimension = async (rank: ItemRank) => {
+    if (!session?.user?.id) return;
+
+    const { data, error } = await supabase
+      .from('rank_instances')
+      .select('*')
+      .eq('user_id', session.user.id)
+      .eq('rank_type', rank)
+      .single();
+
+    if (data) {
+      setPlayerStatus({
+        level: data.current_level_in_rank,
+        xp: data.rank_xp,
+        maxXp: getXPNeeded(data.current_level_in_rank),
+        rank: rank,
+        job: 'Caçador',
+        title: 'DESPERTADO',
+        hp: data.current_hp,
+        maxHp: data.max_hp,
+        dungeon_hp: data.current_hp, 
+        max_dungeon_hp: getMaxDungeonHP(data.current_level_in_rank),
+        mp: data.current_mp,
+        maxMp: data.max_mp,
+        gold: 0,
+        statPoints: data.stat_points,
+        stats: {
+          strength: data.strength,
+          agility: data.agility,
+          intelligence: data.intelligence,
+          vitality: data.vitality,
+          perception: data.perception
+        },
+        equipment: {},
+        inventory: [],
+        milestones: [],
+        completedTrials: [],
+        isPunished: false,
+        criticalFailureCount: 0
+      });
+      setSelectedRank(rank);
+    } else {
+      if (rank === 'E') {
+        const initialStatus: PlayerStatus = {
+          level: 1, xp: 0, maxXp: getXPNeeded(1), rank: 'E',
+          job: 'Iniciante', title: 'LEVELING...',
+          hp: 100, maxHp: 100, dungeon_hp: 115, max_dungeon_hp: 115,
+          mp: 50, maxMp: 50, gold: 0, statPoints: 0,
+          stats: { strength: 10, agility: 10, intelligence: 10, perception: 10, vitality: 10 },
+          equipment: {}, inventory: [], milestones: [],
+          completedTrials: [], isPunished: false, criticalFailureCount: 0
+        };
+        setPlayerStatus(initialStatus);
+        setSelectedRank('E');
+      }
+    }
+  };
+
+  const handleUpdatePlayer = (updates: Partial<PlayerStatus>) => {
+    setPlayerStatus(prev => prev ? { ...prev, ...updates } : null);
   };
 
   const addNotification = useCallback((message: string, type: NotificationType = 'info') => {
@@ -111,7 +137,25 @@ const App: React.FC = () => {
     setHistory(prev => [...prev, { id, message, type }]);
   }, []);
 
-  if (!selectedRank) return <RankSelector currentLevel={1} onSelectRank={setSelectedRank} />;
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    addNotification("[SISTEMA: SINCRONIA ENCERRADA]", "info");
+  };
+
+  if (loading) return (
+    <div className="h-screen w-full bg-[#010307] flex items-center justify-center">
+      <Loader2 size={40} className="text-blue-500 animate-spin" />
+    </div>
+  );
+
+  if (!session) return <AuthScreen onAuthSuccess={setSession} />;
+
+  if (!selectedRank) return (
+    <RankSelector 
+      currentLevel={profile?.total_level_combined || 1} 
+      onSelectRank={loadRankDimension} 
+    />
+  );
   
   return (
     <div className="flex h-screen w-full bg-[#010307] text-slate-200 font-sans overflow-hidden">
@@ -127,8 +171,6 @@ const App: React.FC = () => {
       />
       
       <main className="flex-1 flex flex-col min-w-0 bg-[#010307] relative h-full overflow-hidden">
-        <Header />
-        
         <div className="flex-1 w-full overflow-hidden relative">
           {playerStatus?.isPunished ? (
             <PunishmentZone 
@@ -143,6 +185,10 @@ const App: React.FC = () => {
               {activeView === 'SISTEMA' && playerStatus && (
                 <PlayerStatusWindow 
                   status={playerStatus} 
+                  profile={profile}
+                  onUpdateProfile={setProfile}
+                  onSignOut={handleLogout}
+                  addNotification={addNotification}
                   onUpdateStat={(s) => playerStatus.statPoints > 0 && handleUpdatePlayer({ statPoints: playerStatus.statPoints - 1, stats: {...playerStatus.stats, [s]: playerStatus.stats[s] + 1}})} 
                   onEquipItem={(item) => handleUpdatePlayer({ equipment: { ...playerStatus.equipment, [item.slot.toLowerCase()]: item } })} 
                   onUnequipItem={(slot) => handleUpdatePlayer({ equipment: { ...playerStatus.equipment, [slot]: null } })} 
