@@ -4,9 +4,11 @@ import {
   Sword, Trash2, Save, Loader2, Plus, Edit3, 
   Zap, Dumbbell, Brain, Target, ArrowRight,
   Upload, CheckCircle2, ImageOff, Repeat,
-  ChevronDown, ArrowLeftRight, Skull, ShieldAlert, X, MapPin
+  ChevronDown, ArrowLeftRight, Skull, ShieldAlert, X, MapPin,
+  FileSpreadsheet
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
+import * as XLSX from 'xlsx';
 
 type SubTab = 'LISTA' | 'MATRIZ';
 
@@ -82,6 +84,40 @@ const WeaponsNexus: React.FC = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  const exportToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    
+    // Aba 1: Armas
+    const weaponsExport = items.map(w => ({
+      'NOME': w.nome,
+      'RANK': w.rank,
+      'ATRIBUTO BASE': w.atributo_principal,
+      'DANO INICIAL': w.dano_base,
+      'LVL DESBLOQUEIO': w.nivel_desbloqueio,
+      'LEVEL RANGE': `${w.lvl_min}-${w.lvl_max}`,
+      'MATERIAL REFINO': w.material_upgrade,
+      'TERRITÓRIO': w.territorio || 'Não Mapeado',
+      'EFEITO PASSIVO': w.efeito_especial,
+      'DESCRIÇÃO EFEITO': w.desc_efeito,
+      'HISTÓRIA': w.historia
+    }));
+    const wsWeapons = XLSX.utils.json_to_sheet(weaponsExport);
+    XLSX.utils.book_append_sheet(wb, wsWeapons, "Arsenal_Belico");
+
+    // Aba 2: Afinidades
+    const affsExport = affinities.map(a => ({
+      'ATACANTE': a.atacante,
+      'DEFENSOR': a.defensor,
+      'VANTAGEM': a.vantagem,
+      'MULTIPLICADOR': a.multiplicador,
+      'LORE TÁTICO': a.lore
+    }));
+    const wsAffs = XLSX.utils.json_to_sheet(affsExport);
+    XLSX.utils.book_append_sheet(wb, wsAffs, "Matriz_Afinidades");
+
+    XLSX.writeFile(wb, "Nexus_Arsenal_Sincronizado.xlsx");
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -196,12 +232,21 @@ const WeaponsNexus: React.FC = () => {
 
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500">
-      <div className="flex items-center gap-1 border-b border-slate-800/60 pb-4">
-        <button onClick={() => setSubTab('LISTA')} className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${subTab === 'LISTA' ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900/50'}`}>
-          ARTEFATOS BÉLICOS
-        </button>
-        <button onClick={() => setSubTab('MATRIZ')} className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${subTab === 'MATRIZ' ? 'bg-purple-600 text-white shadow-xl shadow-purple-600/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900/50'}`}>
-          MATRIZ DE AFINIDADE BÉLICA
+      <div className="flex items-center justify-between border-b border-slate-800/60 pb-4">
+        <div className="flex items-center gap-1">
+          <button onClick={() => setSubTab('LISTA')} className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${subTab === 'LISTA' ? 'bg-blue-600 text-white shadow-xl shadow-blue-600/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900/50'}`}>
+            ARTEFATOS BÉLICOS
+          </button>
+          <button onClick={() => setSubTab('MATRIZ')} className={`px-8 py-2.5 text-[10px] font-black uppercase tracking-widest rounded-sm transition-all ${subTab === 'MATRIZ' ? 'bg-purple-600 text-white shadow-xl shadow-purple-600/20' : 'text-slate-500 hover:text-slate-300 hover:bg-slate-900/50'}`}>
+            MATRIZ DE AFINIDADE BÉLICA
+          </button>
+        </div>
+
+        <button 
+          onClick={exportToExcel}
+          className="flex items-center gap-2 px-6 py-2.5 bg-emerald-600/10 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest rounded-sm"
+        >
+          <FileSpreadsheet size={14} /> Exportar Banco (XLSX)
         </button>
       </div>
 

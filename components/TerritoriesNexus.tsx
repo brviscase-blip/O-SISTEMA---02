@@ -4,9 +4,11 @@ import {
   MapPin, Trash2, Save, Loader2, Plus, Edit3, 
   Mountain, Skull, Target, Upload, CheckCircle2, 
   ChevronDown, Database, Map as MapIcon, Compass,
-  Sword, FlaskConical, Crown, Box, Shield, Ghost, MapPinned
+  Sword, FlaskConical, Crown, Box, Shield, Ghost, MapPinned,
+  FileSpreadsheet
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
+import * as XLSX from 'xlsx';
 
 const TIPOS = ['DUNGEON', 'ARENA', 'ZONA DE CAÇA', 'ZONA SEGURA'];
 const RANKS = ['S', 'A', 'B', 'C', 'D', 'E'];
@@ -52,6 +54,26 @@ const TerritoriesNexus: React.FC = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  const exportToExcel = () => {
+    const dataToExport = items.map(item => ({
+      'TERRITÓRIO': item.nome,
+      'RANK': item.rank,
+      'CONSUMÍVEL': item.consumivel,
+      'ARSENAL': item.arsenal,
+      'RELÍQUIA': item.reliquia,
+      'MATERIAL': item.material,
+      'MATERIAL DE REFINO': item.material_refino,
+      'ARMADURA': item.armadura,
+      'BOSS': item.boss,
+      'CRIATURA': item.criatura
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Ecossistema_Loot");
+    XLSX.writeFile(wb, "Nexus_Territorios_Loot.xlsx");
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -109,12 +131,21 @@ const TerritoriesNexus: React.FC = () => {
             <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">Mapeamento de Loot e Entidades Territoriais</p>
           </div>
         </div>
-        <div className="bg-[#030712] border border-slate-800 p-4 rounded-sm flex items-center gap-4">
-           <div className="flex flex-col items-end">
-              <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none">Setores Sincronizados</span>
-              <span className="text-xl font-black text-white italic tabular-nums">{items.length}</span>
-           </div>
-           <Database className="text-blue-500" size={20} />
+        
+        <div className="flex gap-4">
+          <button 
+            onClick={exportToExcel}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600/10 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest rounded-sm"
+          >
+            <FileSpreadsheet size={16} /> Exportar Banco (XLSX)
+          </button>
+          <div className="bg-[#030712] border border-slate-800 p-4 rounded-sm flex items-center gap-4">
+            <div className="flex flex-col items-end">
+                <span className="text-[8px] font-black text-slate-600 uppercase tracking-widest leading-none">Setores Sincronizados</span>
+                <span className="text-xl font-black text-white italic tabular-nums">{items.length}</span>
+            </div>
+            <Database className="text-blue-500" size={20} />
+          </div>
         </div>
       </div>
 

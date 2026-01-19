@@ -4,9 +4,10 @@ import {
   Package, Trash2, Save, Loader2, Plus, Edit3, 
   FlaskConical, Crown, Box, Search, Upload, 
   CheckCircle2, ChevronDown, Database, Info, 
-  TrendingUp, Zap, Coins
+  TrendingUp, Zap, Coins, FileSpreadsheet
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
+import * as XLSX from 'xlsx';
 
 const CATEGORIAS = ['CONSUMÍVEL', 'RELÍQUIA', 'MATERIAL'];
 const DESTINOS = ['Consumíveis', 'Relíquias', 'Geral'];
@@ -51,6 +52,23 @@ const InventoryNexus: React.FC = () => {
   };
 
   useEffect(() => { fetchData(); }, []);
+
+  const exportToExcel = () => {
+    const dataToExport = items.map(i => ({
+      'NOME': i.nome,
+      'CATEGORIA': i.categoria,
+      'RANK': i.rank,
+      'INVENTÁRIO DESTINO': i.inventario_destino,
+      'EFEITO / STATUS': i.efeito,
+      'USO PRINCIPAL': i.uso_principal,
+      'VALOR (OURO)': i.valor_venda
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(dataToExport);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Inventario_Ativos");
+    XLSX.writeFile(wb, "Nexus_Inventario_Database.xlsx");
+  };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -106,9 +124,18 @@ const InventoryNexus: React.FC = () => {
           <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Nexus de Inventário</h2>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Sincronização de Ativos Não-Bélicos</p>
         </div>
-        <div className="flex items-center gap-3 bg-[#030712] border border-slate-800 p-3 rounded-sm">
-           <Database size={14} className="text-emerald-500" />
-           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{items.length} Itens em Registro</span>
+        
+        <div className="flex gap-4">
+          <button 
+            onClick={exportToExcel}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600/10 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest rounded-sm"
+          >
+            <FileSpreadsheet size={16} /> Exportar Banco (XLSX)
+          </button>
+          <div className="flex items-center gap-3 bg-[#030712] border border-slate-800 p-3 rounded-sm">
+            <Database size={14} className="text-emerald-500" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{items.length} Itens em Registro</span>
+          </div>
         </div>
       </div>
 

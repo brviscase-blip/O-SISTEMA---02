@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { 
   Shield, Trash2, Save, Loader2, Plus, Edit3, 
@@ -6,10 +5,11 @@ import {
   Dumbbell, Zap, Brain, Activity, Eye,
   Package, HardDrive, LayoutGrid, Info,
   Search, ExternalLink, ShieldCheck, Upload, ScrollText,
-  Skull, Target
+  Skull, Target, FileSpreadsheet
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
 import { ItemRank, ArmorSet } from '../types';
+import * as XLSX from 'xlsx';
 
 const STANDARD_SLOTS = ['CABEÇA', 'PEITORAL', 'MÃOS', 'PERNAS', 'PÉS', 'ANEL'];
 
@@ -120,6 +120,42 @@ const ArmorsNexus: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
+  const exportToExcel = () => {
+    const wb = XLSX.utils.book_new();
+    
+    // Aba 1: Conjuntos
+    const setsExport = sets.map(s => ({
+      'ID': s.id,
+      'NOME CONJUNTO': s.nome,
+      'RANK': s.rank,
+      'LVL DESBLOQUEIO': s.nivel_desbloqueio,
+      'TRIAL BOSS ID': s.boss_id || 'N/A',
+      'TRIAL CONCLUÍDO': s.desafio_concluido ? 'SIM' : 'NÃO',
+      'LORE': s.descricao_lore
+    }));
+    const wsSets = XLSX.utils.json_to_sheet(setsExport);
+    XLSX.utils.book_append_sheet(wb, wsSets, "Conjuntos_Armadura");
+
+    // Aba 2: Peças
+    const piecesExport = pieces.map(p => {
+      const parent = sets.find(s => s.id === p.conjunto_id);
+      return {
+        'CONJUNTO': parent?.nome || 'Órfão',
+        'NOME PEÇA': p.nome,
+        'SLOT': p.slot,
+        'RANK': p.rank,
+        'STATUS BÔNUS': p.bonus_status,
+        'VANTAGEM': p.vantagem_defensiva,
+        'FRAQUEZA': p.fraqueza_defensiva,
+        'DESCRIÇÃO': p.descricao_lore
+      };
+    });
+    const wsPieces = XLSX.utils.json_to_sheet(piecesExport);
+    XLSX.utils.book_append_sheet(wb, wsPieces, "Peças_Individuais");
+
+    XLSX.writeFile(wb, "Nexus_Armaduras_Master.xlsx");
+  };
+
   const handleSaveSet = async (e: React.FormEvent) => {
     e.preventDefault();
     const client = getSupabaseClient();
@@ -144,7 +180,7 @@ const ArmorsNexus: React.FC = () => {
         if (error) throw error;
       }
       setSetFormData(initialSetState);
-      setEditingSetId(null);
+      setEditingId(null);
       fetchData();
       alert('Conjunto Mestre Sincronizado.');
     } catch (err: any) { 
@@ -169,9 +205,18 @@ const ArmorsNexus: React.FC = () => {
           <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Nexus de Armaduras</h2>
           <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Hierarquia Master-Detail Ativa</p>
         </div>
-        <div className="flex items-center gap-3 bg-[#030712] border border-slate-800 p-3 rounded-sm">
-           <LayoutGrid size={14} className="text-blue-500" />
-           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{sets.length} Conjuntos Detectados</span>
+        
+        <div className="flex gap-4">
+          <button 
+            onClick={exportToExcel}
+            className="flex items-center gap-2 px-6 py-3 bg-emerald-600/10 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest rounded-sm"
+          >
+            <FileSpreadsheet size={16} /> Exportar Banco (XLSX)
+          </button>
+          <div className="flex items-center gap-3 bg-[#030712] border border-slate-800 p-3 rounded-sm">
+            <LayoutGrid size={14} className="text-blue-500" />
+            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{sets.length} Conjuntos Detectados</span>
+          </div>
         </div>
       </div>
 
@@ -208,6 +253,7 @@ const ArmorsNexus: React.FC = () => {
                 </label>
             </div>
           </div>
+          {/* Fix: changed spread source from incorrect 'formData' to 'setFormData' */}
           <FormGroup label="HISTÓRIA E LORE DO SET (HERDADO PELAS PEÇAS)" type="textarea" value={setFormData.descricao_lore} onChange={(v:any) => setSetFormData({...setFormData, descricao_lore:v})} placeholder="Descreva a origem mística deste conjunto..." />
         </form>
       </div>
