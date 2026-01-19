@@ -17,6 +17,8 @@ const getRankTheme = (rank: string) => {
     case 'A': return { text: 'text-amber-500', border: 'border-amber-500/40', bg: 'bg-amber-500/10', glow: 'shadow-amber-500/20' };
     case 'B': return { text: 'text-purple-500', border: 'border-purple-500/40', bg: 'bg-purple-500/10', glow: 'shadow-purple-500/20' };
     case 'C': return { text: 'text-blue-500', border: 'border-blue-500/40', bg: 'bg-blue-500/10', glow: 'shadow-blue-500/20' };
+    case 'D': return { text: 'text-emerald-500', border: 'border-emerald-500/40', bg: 'bg-emerald-500/10', glow: 'shadow-emerald-500/20' };
+    case 'E': return { text: 'text-slate-400', border: 'border-slate-500/30', bg: 'bg-slate-500/5', glow: 'shadow-slate-500/10' };
     default: return { text: 'text-slate-500', border: 'border-slate-800', bg: 'bg-slate-900/40', glow: '' };
   }
 };
@@ -43,7 +45,7 @@ const TerritoriesNexus: React.FC = () => {
     if (!client) return;
     setIsLoading(true);
     try {
-      const { data } = await client.from('territorios').select('*').order('created_at', { ascending: false });
+      const { data } = await client.from('territorios').select('*').order('rank', { ascending: false });
       setItems(data || []);
     } catch (err) { console.error(err); }
     finally { setIsLoading(false); }
