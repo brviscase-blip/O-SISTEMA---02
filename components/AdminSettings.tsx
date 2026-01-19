@@ -1,17 +1,18 @@
 
 import React, { useState } from 'react';
 import { 
-  Lock, Database, Sword, X, Shield, Box, Crown, Package
+  Lock, Database, Sword, X, Shield, Box, Crown, Package, MapPin
 } from 'lucide-react';
 import WeaponsNexus from './WeaponsNexus';
 import ArmorsNexus from './ArmorsNexus';
 import InventoryNexus from './InventoryNexus';
+import TerritoriesNexus from './TerritoriesNexus';
 
 interface Props {
   onClose: () => void;
 }
 
-type AdminModule = 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'ACESSORIO';
+type AdminModule = 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'TERRITORIO' | 'ACESSORIO';
 
 const AdminSettings: React.FC<Props> = ({ onClose }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -76,6 +77,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
             <AdminNavItem icon={<Sword size={18}/>} label="ARSENAL" active={activeModule === 'ARMAS'} onClick={() => setActiveModule('ARMAS')} />
             <AdminNavItem icon={<Shield size={18}/>} label="ARMADURAS" active={activeModule === 'ARMADURAS'} onClick={() => setActiveModule('ARMADURAS')} />
             <AdminNavItem icon={<Package size={18}/>} label="INVENTÁRIO" active={activeModule === 'INVENTARIO'} onClick={() => setActiveModule('INVENTARIO')} />
+            <AdminNavItem icon={<MapPin size={18}/>} label="TERRITÓRIOS" active={activeModule === 'TERRITORIO'} onClick={() => setActiveModule('TERRITORIO')} />
             <AdminNavItem icon={<Crown size={18}/>} label="ACESSÓRIOS" active={activeModule === 'ACESSORIO'} onClick={() => setActiveModule('ACESSORIO')} isLocked />
           </nav>
         </aside>
@@ -84,6 +86,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
           {activeModule === 'ARMAS' && <WeaponsNexus />}
           {activeModule === 'ARMADURAS' && <ArmorsNexus />}
           {activeModule === 'INVENTARIO' && <InventoryNexus />}
+          {activeModule === 'TERRITORIO' && <TerritoriesNexus />}
           {(activeModule === 'ACESSORIO') && (
              <div className="flex-1 flex items-center justify-center py-40">
                 <div className="text-center opacity-20">
