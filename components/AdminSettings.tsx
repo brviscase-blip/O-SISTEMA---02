@@ -1,22 +1,23 @@
 
 import React, { useState } from 'react';
 import { 
-  Lock, Database, Sword, X, Shield, Box, Crown, Package, MapPin
+  Lock, Database, Sword, X, Shield, Box, Crown, Package, MapPin, User
 } from 'lucide-react';
 import WeaponsNexus from './WeaponsNexus';
 import ArmorsNexus from './ArmorsNexus';
 import InventoryNexus from './InventoryNexus';
 import TerritoriesNexus from './TerritoriesNexus';
+import PlayerNexus from './PlayerNexus';
 
 interface Props {
   onClose: () => void;
 }
 
-type AdminModule = 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'TERRITORIO' | 'ACESSORIO';
+type AdminModule = 'PLAYER' | 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'TERRITORIO' | 'ACESSORIO';
 
 const AdminSettings: React.FC<Props> = ({ onClose }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
-  const [activeModule, setActiveModule] = useState<AdminModule>('ARMAS');
+  const [activeModule, setActiveModule] = useState<AdminModule>('PLAYER');
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
@@ -37,7 +38,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
         <div className="flex-1 flex items-center justify-center p-4">
           <div className="w-full max-w-[420px] bg-[#030712] border border-slate-800 p-10 rounded-sm shadow-[0_0_80px_rgba(0,0,0,0.8)]">
             <div className="flex flex-col items-center mb-10">
-              <div className="w-20 h-20 bg-blue-900/10 border border-blue-500/40 rounded-full flex items-center justify-center text-blue-500 mb-6 shadow-[0_0_30px_rgba(59,130,246,0.1)]">
+              <div className="w-20 h-20 bg-blue-900/10 border border-blue-500/40 rounded-full flex items-center justify-center text-blue-500 mb-6 shadow-[0_0_30px_rgba(59,130,246,0.15)]">
                 <Lock size={40} />
               </div>
               <h2 className="text-base font-black text-white uppercase tracking-[0.4em]">SISTEMA CENTRAL</h2>
@@ -74,6 +75,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
       <div className="flex-1 flex overflow-hidden">
         <aside className="w-64 bg-[#020617] border-r border-slate-800 flex flex-col flex-shrink-0 shadow-2xl z-10">
           <nav className="flex-1 p-3 space-y-1">
+            <AdminNavItem icon={<User size={18}/>} label="PLAYER" active={activeModule === 'PLAYER'} onClick={() => setActiveModule('PLAYER')} />
             <AdminNavItem icon={<Sword size={18}/>} label="ARSENAL" active={activeModule === 'ARMAS'} onClick={() => setActiveModule('ARMAS')} />
             <AdminNavItem icon={<Shield size={18}/>} label="ARMADURAS" active={activeModule === 'ARMADURAS'} onClick={() => setActiveModule('ARMADURAS')} />
             <AdminNavItem icon={<Package size={18}/>} label="INVENTÁRIO" active={activeModule === 'INVENTARIO'} onClick={() => setActiveModule('INVENTARIO')} />
@@ -83,6 +85,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
         </aside>
 
         <main className="flex-1 overflow-y-auto custom-scrollbar bg-[#010307]">
+          {activeModule === 'PLAYER' && <PlayerNexus />}
           {activeModule === 'ARMAS' && <WeaponsNexus />}
           {activeModule === 'ARMADURAS' && <ArmorsNexus />}
           {activeModule === 'INVENTARIO' && <InventoryNexus />}
