@@ -9,7 +9,7 @@ import {
 import { getSupabaseClient } from '../supabaseClient';
 import * as XLSX from 'xlsx';
 
-const CATEGORIAS = ['CONSUMÍVEL', 'RELÍQUIA', 'MATERIAL'];
+const CATEGORIAS = ['CONSUMÍVEL', 'RELÍQUIA', 'MATERIAL DE REFINO'];
 const DESTINOS = ['Consumíveis', 'Relíquias', 'Geral'];
 const RANKS = ['S', 'A', 'B', 'C', 'D', 'E'];
 
@@ -17,7 +17,7 @@ const getCategoryTheme = (cat: string) => {
   switch (cat) {
     case 'CONSUMÍVEL': return { color: 'text-emerald-500', bg: 'bg-emerald-500/10', border: 'border-emerald-500/30', icon: <FlaskConical size={14} /> };
     case 'RELÍQUIA': return { color: 'text-amber-500', bg: 'bg-amber-500/10', border: 'border-amber-500/30', icon: <Crown size={14} /> };
-    case 'MATERIAL': return { color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/30', icon: <Box size={14} /> };
+    case 'MATERIAL DE REFINO': return { color: 'text-blue-500', bg: 'bg-blue-500/10', border: 'border-blue-500/30', icon: <Box size={14} /> };
     default: return { color: 'text-slate-500', bg: 'bg-slate-500/10', border: 'border-slate-800', icon: <Package size={14} /> };
   }
 };

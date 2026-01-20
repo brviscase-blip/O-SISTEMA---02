@@ -180,7 +180,8 @@ const ArmorsNexus: React.FC = () => {
         if (error) throw error;
       }
       setSetFormData(initialSetState);
-      setEditingId(null);
+      // Fix: Use setEditingSetId instead of setEditingId to clear the editing state
+      setEditingSetId(null);
       fetchData();
       alert('Conjunto Mestre Sincronizado.');
     } catch (err: any) { 

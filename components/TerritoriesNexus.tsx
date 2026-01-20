@@ -35,7 +35,7 @@ const TerritoriesNexus: React.FC = () => {
 
   const initialForm = {
     nome: '', rank: 'E', consumivel: '-', arsenal: '-',
-    reliquia: '-', material: '-', material_refino: '-',
+    reliquia: '-', material_refino: '-', 
     armadura: '-', boss: '-', criatura: '-',
     img: '', descricao_lore: '', nivel_minimo: 1, tipo: 'ARENA', clima: 'Estável'
   };
@@ -62,7 +62,6 @@ const TerritoriesNexus: React.FC = () => {
       'CONSUMÍVEL': item.consumivel,
       'ARSENAL': item.arsenal,
       'RELÍQUIA': item.reliquia,
-      'MATERIAL': item.material,
       'MATERIAL DE REFINO': item.material_refino,
       'ARMADURA': item.armadura,
       'BOSS': item.boss,
@@ -167,12 +166,11 @@ const TerritoriesNexus: React.FC = () => {
           {/* BLOCO 2: TABELA DE ECOSSISTEMA (LOOT) */}
           <div className="space-y-6 pt-6 border-t border-slate-800/40">
             <h4 className="text-[10px] font-black text-emerald-400 uppercase tracking-widest flex items-center gap-2"><Box size={14} /> Ecossistema de Ativos (Loot)</h4>
-            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-5">
               <FormGroup label="CONSUMÍVEL" value={formData.consumivel} onChange={(v:any) => setFormData({...formData, consumivel:v})} placeholder="-" />
               <FormGroup label="ARSENAL" value={formData.arsenal} onChange={(v:any) => setFormData({...formData, arsenal:v})} placeholder="-" />
               <FormGroup label="RELÍQUIA" value={formData.reliquia} onChange={(v:any) => setFormData({...formData, reliquia:v})} placeholder="-" />
-              <FormGroup label="MATERIAL" value={formData.material} onChange={(v:any) => setFormData({...formData, material:v})} placeholder="-" />
-              <FormGroup label="MAT. REFINO" value={formData.material_refino} onChange={(v:any) => setFormData({...formData, material_refino:v})} placeholder="-" />
+              <FormGroup label="MAT. DE REFINO" value={formData.material_refino} onChange={(v:any) => setFormData({...formData, material_refino:v})} placeholder="-" />
               <FormGroup label="ARMADURA" value={formData.armadura} onChange={(v:any) => setFormData({...formData, armadura:v})} placeholder="-" />
             </div>
           </div>
@@ -227,8 +225,7 @@ const TerritoriesNexus: React.FC = () => {
                   <th className="px-4 py-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Consumível</th>
                   <th className="px-4 py-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Arsenal</th>
                   <th className="px-4 py-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Relíquia</th>
-                  <th className="px-4 py-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Material</th>
-                  <th className="px-4 py-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Mat. Refino</th>
+                  <th className="px-4 py-5 text-[9px] font-black text-slate-500 uppercase tracking-widest text-blue-400">Mat. de Refino</th>
                   <th className="px-4 py-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Armadura</th>
                   <th className="px-4 py-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Boss</th>
                   <th className="px-4 py-5 text-[9px] font-black text-slate-500 uppercase tracking-widest">Criatura</th>
@@ -257,8 +254,7 @@ const TerritoriesNexus: React.FC = () => {
                         <td className="px-4 py-5 text-[10px] font-bold text-slate-400 uppercase italic tabular-nums">{item.consumivel}</td>
                         <td className="px-4 py-5 text-[10px] font-black text-rose-500 uppercase italic tracking-tight">{item.arsenal}</td>
                         <td className="px-4 py-5 text-[10px] font-bold text-amber-500/80 uppercase italic">{item.reliquia}</td>
-                        <td className="px-4 py-5 text-[10px] font-bold text-blue-400/80 uppercase italic">{item.material}</td>
-                        <td className="px-4 py-5 text-[10px] font-bold text-emerald-400/80 uppercase italic">{item.material_refino}</td>
+                        <td className="px-4 py-5 text-[10px] font-bold text-blue-400/80 uppercase italic">{item.material_refino}</td>
                         <td className="px-4 py-5 text-[10px] font-bold text-slate-400 uppercase italic">{item.armadura}</td>
                         <td className="px-4 py-5 text-[11px] font-black text-rose-600 uppercase italic">{item.boss}</td>
                         <td className="px-4 py-5 text-[10px] font-bold text-slate-500 uppercase italic">{item.criatura}</td>
