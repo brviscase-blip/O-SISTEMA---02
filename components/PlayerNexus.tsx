@@ -6,6 +6,7 @@ import {
   Activity, Crown, Loader2, Save, RotateCcw
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
+import { getXPNeeded, getMaxGlobalHP } from '../App';
 
 const TERRITORIOS_RANK: Record<string, string> = {
   'E': 'Posto Avançado Abandonado',
@@ -49,9 +50,6 @@ const PlayerNexus: React.FC = () => {
     fetchPlayerData();
   }, []);
 
-  // Cálculo da curva de XP para o próximo nível
-  const getNextLevelXP = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.4));
-
   const addXP = async (amount: number, source: string) => {
     if (!player || isSyncing) return;
     setIsSyncing(true);
@@ -59,23 +57,22 @@ const PlayerNexus: React.FC = () => {
     let newXP = player.current_xp + amount;
     let newLevel = player.level;
     let newRank = player.rank;
-    let newMaxHP = player.max_global_hp;
-    let newMaxMP = player.max_mp;
 
-    // Lógica de Level Up
-    while (newXP >= getNextLevelXP(newLevel)) {
-      newXP -= getNextLevelXP(newLevel);
+    // Lógica de Level Up Sincronizada
+    while (newXP >= getXPNeeded(newLevel)) {
+      newXP -= getXPNeeded(newLevel);
       newLevel++;
-      newMaxHP += 20;
-      newMaxMP += 10;
       
-      // Evolução de Rank baseada no Level
+      // Evolução de Rank baseada no Level Global
       if (newLevel >= 100 && newLevel < 200) newRank = 'D';
       else if (newLevel >= 200 && newLevel < 400) newRank = 'C';
       else if (newLevel >= 400 && newLevel < 600) newRank = 'B';
       else if (newLevel >= 600 && newLevel < 800) newRank = 'A';
       else if (newLevel >= 800) newRank = 'S';
     }
+
+    const newMaxHP = getMaxGlobalHP(newLevel);
+    const newMaxMP = 50 + (newLevel * 10);
 
     const client = getSupabaseClient();
     await client.from('player_survival').update({
@@ -112,7 +109,7 @@ const PlayerNexus: React.FC = () => {
     </div>
   );
 
-  const xpNext = getNextLevelXP(player.level);
+  const xpNext = getXPNeeded(player.level);
   const xpPercent = (player.current_xp / xpNext) * 100;
   const hpPercent = (player.current_global_hp / player.max_global_hp) * 100;
   const mpPercent = (player.current_mp / player.max_mp) * 100;
@@ -149,47 +146,16 @@ const PlayerNexus: React.FC = () => {
 
       {/* VITAL BARS (PRECISÃO MATEMÁTICA) */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        
-        {/* HP PANEL */}
-        <StatusPanel 
-          label="VITALIDADE GLOBAL (HP)" 
-          value={player.current_global_hp} 
-          max={player.max_global_hp} 
-          percent={hpPercent} 
-          color="bg-emerald-600" 
-          glow="shadow-emerald-500/20"
-          icon={<Heart size={14} className="text-emerald-500" />}
-        />
-
-        {/* MP PANEL */}
-        <StatusPanel 
-          label="ENERGIA DIMENSIONAL (MP)" 
-          value={player.current_mp} 
-          max={player.max_mp} 
-          percent={mpPercent} 
-          color="bg-blue-600" 
-          glow="shadow-blue-500/20"
-          icon={<Sparkles size={14} className="text-blue-500" />}
-        />
-
-        {/* XP PANEL */}
-        <StatusPanel 
-          label={`PROGRESSÃO DE EXPERIÊNCIA (XP)`} 
-          value={player.current_xp} 
-          max={xpNext} 
-          percent={xpPercent} 
-          color="bg-gradient-to-r from-amber-500 to-purple-600" 
-          glow="shadow-amber-500/20"
-          icon={<TrendingUp size={14} className="text-amber-500" />}
-        />
+        <StatusPanel label="VITALIDADE GLOBAL (HP)" value={player.current_global_hp} max={player.max_global_hp} percent={hpPercent} color="bg-emerald-600" glow="shadow-emerald-500/20" icon={<Heart size={14} className="text-emerald-500" />} />
+        <StatusPanel label="ENERGIA DIMENSIONAL (MP)" value={player.current_mp} max={player.max_mp} percent={mpPercent} color="bg-blue-600" glow="shadow-blue-500/20" icon={<Sparkles size={14} className="text-blue-500" />} />
+        <StatusPanel label={`XP PROGRESSÃO`} value={player.current_xp} max={xpNext} percent={xpPercent} color="bg-gradient-to-r from-amber-500 to-purple-600" glow="shadow-amber-500/20" icon={<TrendingUp size={14} className="text-amber-500" />} />
       </div>
 
-      {/* ACTIONS: GESTÃO DE GANHOS (DEBUG/ADMIN) */}
+      {/* ACTIONS */}
       <div className="bg-[#030712] border border-slate-800 p-8 rounded-sm">
         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-8 flex items-center gap-2">
           <Zap size={14} className="text-blue-500" /> Injetar Atividade de Sistema
         </h3>
-        
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
            <ActionBtn label="Dungeon Azul" xp={100} icon={<Swords size={16}/>} onClick={() => addXP(100, 'BLUE_DUNGEON')} color="bg-blue-600" />
            <ActionBtn label="Dungeon Vermelha" xp={300} icon={<Flame size={16}/>} onClick={() => addXP(300, 'RED_DUNGEON')} color="bg-rose-600" />
@@ -199,19 +165,6 @@ const PlayerNexus: React.FC = () => {
            <ActionBtn label="Vício Vencido" xp={200} icon={<Shield size={16}/>} onClick={() => addXP(200, 'VICE_VICTORY')} color="bg-emerald-600" />
         </div>
       </div>
-
-      {/* FOOTER INFO */}
-      <div className="flex flex-col items-center justify-center py-10 opacity-20 border-t border-slate-800/30">
-         <p className="text-[9px] font-black text-slate-600 uppercase tracking-[0.5em]">Nexus Player Survival Engine v3.0</p>
-         <p className="text-[8px] font-bold text-slate-700 uppercase tracking-widest mt-2 italic">Estimativa de Ascensão ao Level 1.000: 730 Ciclos Solares</p>
-      </div>
-
-      {isSyncing && (
-        <div className="fixed bottom-10 right-10 flex items-center gap-3 bg-blue-600 text-white px-6 py-3 rounded-full shadow-2xl animate-bounce">
-           <Loader2 className="animate-spin" size={16} />
-           <span className="text-[10px] font-black uppercase tracking-widest">Sincronizando com o Sistema...</span>
-        </div>
-      )}
     </div>
   );
 };
@@ -219,14 +172,8 @@ const PlayerNexus: React.FC = () => {
 const StatusPanel = ({ label, value, max, percent, color, icon, glow }: any) => (
   <div className="bg-black/40 border border-slate-800 p-6 rounded-sm space-y-4">
     <div className="flex items-center justify-between">
-      <div className="flex items-center gap-2">
-        {icon}
-        <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span>
-      </div>
-      <div className="flex items-baseline gap-1 text-white">
-        <span className="text-xl font-black italic tabular-nums">{value}</span>
-        <span className="text-[9px] font-bold text-slate-600">/ {max}</span>
-      </div>
+      <div className="flex items-center gap-2">{icon}<span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{label}</span></div>
+      <div className="flex items-baseline gap-1 text-white"><span className="text-xl font-black italic tabular-nums">{value}</span><span className="text-[9px] font-bold text-slate-600">/ {max}</span></div>
     </div>
     <div className="h-3 w-full bg-slate-900 rounded-full overflow-hidden border border-slate-800 p-0.5">
       <div className={`h-full rounded-full transition-all duration-1000 ${color} ${glow}`} style={{ width: `${percent}%` }} />
@@ -235,17 +182,9 @@ const StatusPanel = ({ label, value, max, percent, color, icon, glow }: any) => 
 );
 
 const ActionBtn = ({ label, xp, icon, onClick, color }: any) => (
-  <button 
-    onClick={onClick}
-    className="group flex flex-col items-center justify-center p-4 bg-slate-900/40 border border-slate-800 hover:border-blue-500/50 transition-all rounded-sm gap-2"
-  >
-    <div className={`w-10 h-10 ${color} text-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>
-       {icon}
-    </div>
-    <div className="text-center">
-       <p className="text-[8px] font-black text-white uppercase leading-tight">{label}</p>
-       <p className="text-[7px] font-bold text-blue-500 uppercase mt-1">+{xp} XP</p>
-    </div>
+  <button onClick={onClick} className="group flex flex-col items-center justify-center p-4 bg-slate-900/40 border border-slate-800 hover:border-blue-500/50 transition-all rounded-sm gap-2">
+    <div className={`w-10 h-10 ${color} text-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>{icon}</div>
+    <div className="text-center"><p className="text-[8px] font-black text-white uppercase leading-tight">{label}</p><p className="text-[7px] font-bold text-blue-500 uppercase mt-1">+{xp} XP</p></div>
   </button>
 );
 

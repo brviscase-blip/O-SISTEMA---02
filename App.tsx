@@ -16,9 +16,10 @@ import { supabase } from './supabaseClient';
 import { ViewType, PlayerStatus, ItemRank } from './types';
 import { Loader2 } from 'lucide-react';
 
-// Fórmulas da "Espinha Dorsal"
-const getXPNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.5));
-const getMaxDungeonHP = (lvl: number) => 100 + (lvl * 15);
+// --- MOTOR MATEMÁTICO UNIFICADO (NEXUS CORE) ---
+export const getXPNeeded = (lvl: number) => Math.floor(100 * Math.pow(lvl, 1.4));
+export const getMaxGlobalHP = (lvl: number) => 200 + (lvl * 20);
+export const getMaxDungeonHP = (lvl: number) => 100 + (lvl * 15);
 
 const App: React.FC = () => {
   const [session, setSession] = useState<any>(null);
@@ -55,7 +56,7 @@ const App: React.FC = () => {
     if (!session?.user?.id) return;
 
     const fetchProfile = async () => {
-      const { data, error } = await supabase
+      const { data } = await supabase
         .from('profiles')
         .select('*')
         .eq('id', session.user.id)
@@ -112,11 +113,12 @@ const App: React.FC = () => {
       });
       setSelectedRank(rank);
     } else {
+      // Se não encontrar no banco, inicia o Rank E com os valores padrão do SQL
       if (rank === 'E') {
         const initialStatus: PlayerStatus = {
           level: 1, xp: 0, maxXp: getXPNeeded(1), rank: 'E',
           job: 'Iniciante', title: 'LEVELING...',
-          hp: 100, maxHp: 100, dungeon_hp: 115, max_dungeon_hp: 115,
+          hp: 100, maxHp: 100, dungeon_hp: 100, max_dungeon_hp: getMaxDungeonHP(1),
           mp: 50, maxMp: 50, gold: 0, statPoints: 0,
           stats: { strength: 10, agility: 10, intelligence: 10, perception: 10, vitality: 10 },
           equipment: {}, inventory: [], milestones: [],
