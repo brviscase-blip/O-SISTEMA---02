@@ -4,7 +4,7 @@ import {
   Package, Trash2, Save, Loader2, Plus, Edit3, 
   FlaskConical, Crown, Box, Search, Upload, 
   CheckCircle2, ChevronDown, Database, Info, 
-  TrendingUp, Zap, Coins, FileSpreadsheet, MapPin, Percent
+  TrendingUp, Zap, Coins, FileSpreadsheet, MapPin, Percent, ImagePlus, X
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
 import * as XLSX from 'xlsx';
@@ -53,38 +53,25 @@ const InventoryNexus: React.FC = () => {
 
   useEffect(() => { fetchData(); }, []);
 
-  const exportToExcel = () => {
-    const dataToExport = items.map(i => ({
-      'NOME': i.nome,
-      'CATEGORIA': i.categoria,
-      'RANK': i.rank,
-      'INVENTÁRIO DESTINO': i.inventario_destino,
-      'EFEITO / STATUS': i.efeito,
-      'USO PRINCIPAL': i.uso_principal,
-      'TERRITÓRIO': i.territorio,
-      'PROBABILIDADE': `${i.probabilidade}%`,
-      'VALOR (OURO)': i.valor_venda
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(dataToExport);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Inventario_Ativos");
-    XLSX.writeFile(wb, "Nexus_Inventario_Master.xlsx");
-  };
-
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
     const client = getSupabaseClient();
     setIsUploading(true);
     try {
-      const fileName = `${Date.now()}_item.${file.name.split('.').pop()}`;
-      const { error: uploadError } = await client.storage.from('armas-imgs').upload(`inventario/${fileName}`, file);
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}_inv.${fileExt}`;
+      const filePath = `inventario/${fileName}`;
+
+      // Upload para o storage 'armas-imgs' (reutilizando o bucket de assets)
+      const { error: uploadError } = await client.storage.from('armas-imgs').upload(filePath, file);
       if (uploadError) throw uploadError;
-      const { data: { publicUrl } } = client.storage.from('armas-imgs').getPublicUrl(`inventario/${fileName}`);
+
+      const { data: { publicUrl } } = client.storage.from('armas-imgs').getPublicUrl(filePath);
       setFormData(prev => ({ ...prev, img: publicUrl }));
-    } catch (err) {
-      alert("Erro no upload do visual.");
+    } catch (err: any) {
+      alert("Falha no upload visual: " + err.message);
     } finally {
       setIsUploading(false);
     }
@@ -104,16 +91,16 @@ const InventoryNexus: React.FC = () => {
       setFormData(initialForm);
       setEditingId(null);
       fetchData();
-      alert("Registro de Ativo Sincronizado.");
+      alert("Ativo Sincronizado com Sucesso.");
     } catch (err) {
-      alert("Falha na gravação de dados.");
+      alert("Erro ao gravar dados.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const deleteItem = async (id: string) => {
-    if (!window.confirm("EXPURGAR ATIVO?")) return;
+    if (!window.confirm("CONFIRMAR EXPURGO DO ATIVO?")) return;
     const client = getSupabaseClient();
     await client.from('inventario_nexus').delete().eq('id', id);
     fetchData();
@@ -124,52 +111,104 @@ const InventoryNexus: React.FC = () => {
       <div className="flex items-center justify-between border-b border-slate-800 pb-6">
         <div>
           <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Nexus de Inventário</h2>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Gestão de Probabilidade e Efeitos de Ativos</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Gestão de Ativos e Suporte Dimensional</p>
         </div>
-        <button onClick={exportToExcel} className="flex items-center gap-2 px-6 py-3 bg-emerald-600/10 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest rounded-sm">
-          <FileSpreadsheet size={16} /> Exportar Banco (XLSX)
-        </button>
+        <div className="flex items-center gap-3 bg-slate-900/50 border border-slate-800 px-4 py-2 rounded-sm">
+           <Database size={14} className="text-blue-500" />
+           <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{items.length} ITENS NO BANCO</span>
+        </div>
       </div>
 
       <div className="bg-[#030712] border border-slate-800 p-8 rounded-sm relative shadow-2xl overflow-hidden group">
         <div className={`absolute top-0 left-0 w-1 h-full transition-colors duration-500 ${editingId ? 'bg-amber-500' : 'bg-blue-600'}`} />
-        <h3 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 flex items-center gap-3">
-          {editingId ? <Edit3 size={18} className="text-amber-500" /> : <Plus size={18} className="text-blue-500" />}
-          {editingId ? 'RECALIBRAR ATIVO' : 'REGISTRAR NOVO ATIVO'}
-        </h3>
-
-        <form onSubmit={handleSave} className="space-y-8">
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-6">
-            <div className="md:col-span-5"><FormGroup label="NOME DO ITEM" value={formData.nome} onChange={(v:any) => setFormData({...formData, nome:v})} placeholder="Ex: Poção de HP" /></div>
-            <div className="md:col-span-3"><FormGroup label="CATEGORIA" type="select" options={CATEGORIAS} value={formData.categoria} onChange={(v:any) => setFormData({...formData, categoria:v})} /></div>
-            <div className="md:col-span-4"><FormGroup label="INVENTÁRIO DESTINO" type="select" options={DESTINOS} value={formData.inventario_destino} onChange={(v:any) => setFormData({...formData, inventario_destino:v})} /></div>
+        
+        <form onSubmit={handleSave} className="space-y-10">
+          <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
             
-            <div className="md:col-span-6"><FormGroup label="EFEITO DE SISTEMA / ATRIBUTO" value={formData.efeito} onChange={(v:any) => setFormData({...formData, efeito:v})} placeholder="Ex: +5 Vitalidade Real (Permanente)" /></div>
-            <div className="md:col-span-6"><FormGroup label="USO PRINCIPAL" value={formData.uso_principal} onChange={(v:any) => setFormData({...formData, uso_principal:v})} placeholder="Ex: Upgrade de Personagem" /></div>
+            {/* COLUNA DE UPLOAD (VISUAL) */}
+            <div className="lg:col-span-3 space-y-4">
+               <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Upload Visual (.PNG)</label>
+               <div 
+                 onClick={() => !isUploading && fileInputRef.current?.click()}
+                 className={`w-full aspect-square bg-slate-950 border-2 border-dashed rounded-sm flex flex-col items-center justify-center cursor-pointer transition-all relative overflow-hidden group/upload ${formData.img ? 'border-emerald-500/50' : 'border-slate-800 hover:border-blue-500/50'}`}
+               >
+                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
+                  
+                  {isUploading ? (
+                    <div className="flex flex-col items-center gap-2">
+                       <Loader2 className="animate-spin text-blue-500" size={32} />
+                       <span className="text-[9px] font-black text-blue-500 uppercase">Sincronizando...</span>
+                    </div>
+                  ) : formData.img ? (
+                    <>
+                      <img src={formData.img} className="w-full h-full object-contain p-4" alt="Preview" />
+                      <div className="absolute inset-0 bg-black/60 opacity-0 group-hover/upload:opacity-100 transition-opacity flex items-center justify-center">
+                         <span className="text-[9px] font-black text-white uppercase tracking-widest">Trocar Imagem</span>
+                      </div>
+                      <button 
+                        type="button" 
+                        onClick={(e) => { e.stopPropagation(); setFormData({...formData, img: ''}); }}
+                        className="absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-full hover:bg-rose-500 transition-all shadow-lg"
+                      >
+                        <X size={12} />
+                      </button>
+                    </>
+                  ) : (
+                    <div className="flex flex-col items-center gap-3 text-slate-700 group-hover/upload:text-blue-500 transition-colors">
+                       <ImagePlus size={40} />
+                       <span className="text-[9px] font-black uppercase tracking-widest">Selecionar Ativo</span>
+                    </div>
+                  )}
+               </div>
+               <p className="text-[8px] text-slate-600 font-bold uppercase text-center italic tracking-tighter">Resolução recomendada: 512x512px</p>
+            </div>
 
-            <div className="md:col-span-4"><FormGroup label="TERRITÓRIO DE ORIGEM" value={formData.territorio} onChange={(v:any) => setFormData({...formData, territorio:v})} placeholder="Ex: Templo de Carthenon" /></div>
-            <div className="md:col-span-2"><FormGroup label="PROBABILIDADE (%)" type="number" value={formData.probabilidade} onChange={(v:any) => setFormData({...formData, probabilidade:v})} /></div>
-            <div className="md:col-span-2"><FormGroup label="RANK" type="select" options={RANKS} value={formData.rank} onChange={(v:any) => setFormData({...formData, rank:v})} /></div>
-            <div className="md:col-span-2"><FormGroup label="VALOR (OURO)" type="number" value={formData.valor_venda} onChange={(v:any) => setFormData({...formData, valor_venda:v})} /></div>
-            
-            <div className="md:col-span-2 pt-6">
-              <button type="submit" disabled={isSaving || isUploading} className={`w-full h-12 ${editingId ? 'bg-amber-600' : 'bg-blue-600'} text-white text-[11px] font-black uppercase transition-all rounded-sm shadow-xl active:scale-95 flex items-center justify-center gap-2`}>
-                {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                {editingId ? 'ATUALIZAR' : 'REGISTRAR'}
-              </button>
+            {/* COLUNA DE DADOS */}
+            <div className="lg:col-span-9 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <FormGroup label="NOME DO ITEM" value={formData.nome} onChange={(v:any) => setFormData({...formData, nome:v})} placeholder="Ex: Poção de HP [Rank S]" />
+                 <div className="grid grid-cols-2 gap-4">
+                    <FormGroup label="CATEGORIA" type="select" options={CATEGORIAS} value={formData.categoria} onChange={(v:any) => setFormData({...formData, categoria:v})} />
+                    <FormGroup label="RANK" type="select" options={RANKS} value={formData.rank} onChange={(v:any) => setFormData({...formData, rank:v})} />
+                 </div>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 <FormGroup label="EFEITO DE SISTEMA" value={formData.efeito} onChange={(v:any) => setFormData({...formData, efeito:v})} placeholder="Ex: +30% Poder Vital (Dungeon)" />
+                 <FormGroup label="USO PRINCIPAL" value={formData.uso_principal} onChange={(v:any) => setFormData({...formData, uso_principal:v})} placeholder="Ex: Sobrevivência Imediata" />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                 <FormGroup label="TERRITÓRIO" value={formData.territorio} onChange={(v:any) => setFormData({...formData, territorio:v})} placeholder="Ex: TODOS ou Nome da Dungeon" />
+                 <FormGroup label="PROBABILIDADE (%)" type="number" value={formData.probabilidade} onChange={(v:any) => setFormData({...formData, probabilidade:v})} />
+                 <FormGroup label="DESTINO" type="select" options={DESTINOS} value={formData.inventario_destino} onChange={(v:any) => setFormData({...formData, inventario_destino:v})} />
+                 <FormGroup label="VALOR (OURO)" type="number" value={formData.valor_venda} onChange={(v:any) => setFormData({...formData, valor_venda:v})} />
+              </div>
+
+              <div className="flex justify-end gap-4 pt-4 border-t border-slate-800/50">
+                 {editingId && (
+                   <button type="button" onClick={() => { setEditingId(null); setFormData(initialForm); }} className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase tracking-widest hover:text-white transition-all">Cancelar</button>
+                 )}
+                 <button type="submit" disabled={isSaving || isUploading} className={`px-12 py-4 ${editingId ? 'bg-amber-600' : 'bg-blue-600'} text-white text-[11px] font-black uppercase tracking-[0.3em] rounded-sm shadow-xl active:scale-95 flex items-center gap-3`}>
+                    {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
+                    {editingId ? 'RECALIBRAR ATIVO' : 'REGISTRAR NO BANCO'}
+                 </button>
+              </div>
             </div>
           </div>
         </form>
       </div>
 
+      {/* TABELA DE LISTAGEM */}
       <div className="space-y-4">
          <div className="bg-slate-900/30 border border-slate-800/50 h-10 flex items-center px-6 rounded-sm w-full font-black text-[9px] text-slate-500 uppercase tracking-widest">
-            <div className="w-[20%]">ATIVO</div>
-            <div className="w-[12%] text-center">RANK/CATEGORIA</div>
-            <div className="w-[15%] text-center">LOCALIZAÇÃO</div>
+            <div className="w-[8%] text-center">VISUAL</div>
+            <div className="w-[17%]">NOME</div>
+            <div className="w-[10%] text-center">RANK</div>
+            <div className="w-[15%] text-center">TERRITÓRIO</div>
+            <div className="w-[20%]">EFEITO</div>
             <div className="w-[10%] text-center">PROB.</div>
-            <div className="w-[20%] text-center">EFEITO</div>
-            <div className="w-[13%] text-center">DESTINO</div>
+            <div className="w-[10%] text-center">DESTINO</div>
             <div className="w-[10%] text-right pr-4">AÇÕES</div>
          </div>
 
@@ -180,43 +219,40 @@ const InventoryNexus: React.FC = () => {
                   <div key={item.id} className="bg-[#030712] border border-slate-800 h-20 flex items-center px-6 group hover:border-slate-600 transition-all relative overflow-hidden rounded-sm w-full shadow-lg">
                     <div className={`absolute left-0 top-0 h-full w-1 ${theme.color.replace('text', 'bg')}`} />
                     
-                    <div className="w-[20%] flex items-center gap-4">
-                       <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-sm flex items-center justify-center overflow-hidden flex-shrink-0">
-                          {item.img ? <img src={item.img} className="w-full h-full object-cover" /> : <div className={theme.color}>{theme.icon}</div>}
-                       </div>
-                       <div className="flex flex-col min-w-0">
-                          <h4 className="text-[12px] font-black text-white uppercase italic truncate">{item.nome}</h4>
-                          <span className="text-[8px] font-bold text-slate-600 uppercase mt-1 truncate italic">Rank {item.rank}</span>
+                    <div className="w-[8%] flex justify-center">
+                       <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-sm flex items-center justify-center overflow-hidden shrink-0 shadow-inner">
+                          {item.img ? <img src={item.img} className="w-full h-full object-contain p-1" /> : <div className={theme.color}>{theme.icon}</div>}
                        </div>
                     </div>
 
-                    <div className="w-[12%] text-center">
-                        <div className={`inline-flex items-center gap-2 px-2 py-0.5 rounded-sm border ${theme.border} ${theme.color} text-[8px] font-black uppercase`}>
-                           {theme.icon} {item.categoria}
-                        </div>
+                    <div className="w-[17%] pl-4">
+                       <h4 className="text-[12px] font-black text-white uppercase italic truncate">{item.nome}</h4>
+                       <span className={`text-[7px] font-bold uppercase tracking-widest ${theme.color}`}>{item.categoria}</span>
                     </div>
 
-                    <div className="w-[15%] text-center px-2">
-                       <div className="flex items-center justify-center gap-1 text-[9px] font-black text-blue-400 uppercase italic">
-                          <MapPin size={10} />
-                          <span className="truncate">{item.territorio || 'GLOBAL'}</span>
+                    <div className="w-[10%] text-center">
+                       <span className="text-sm font-black text-slate-400 italic">RANK {item.rank}</span>
+                    </div>
+
+                    <div className="w-[15%] text-center">
+                       <div className="flex items-center justify-center gap-1.5 text-[9px] font-black text-blue-400 uppercase italic">
+                          <MapPin size={10} /> {item.territorio || 'GLOBAL'}
+                       </div>
+                    </div>
+
+                    <div className="w-[20%] pr-4">
+                       <p className="text-[10px] font-black text-white italic truncate leading-none uppercase tracking-tighter">{item.efeito}</p>
+                       <span className="text-[7px] text-slate-600 font-bold uppercase mt-1 block truncate">{item.uso_principal}</span>
+                    </div>
+
+                    <div className="w-[10%] text-center">
+                       <div className="inline-flex items-center gap-1 text-emerald-400 font-black italic text-xs">
+                          <Percent size={10} /> {item.probabilidade}%
                        </div>
                     </div>
 
                     <div className="w-[10%] text-center">
-                       <div className="flex items-center justify-center gap-1 text-emerald-400 font-black italic">
-                          <Percent size={12} />
-                          <span className="text-sm">{item.probabilidade}%</span>
-                       </div>
-                    </div>
-
-                    <div className="w-[20%] text-center px-4">
-                       <p className="text-[10px] font-black text-white italic truncate leading-none uppercase tracking-tighter">{item.efeito || 'N/A'}</p>
-                       <span className="text-[7px] text-slate-600 font-bold uppercase mt-1 block truncate">{item.uso_principal}</span>
-                    </div>
-
-                    <div className="w-[13%] text-center">
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.inventario_destino}</span>
+                       <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{item.inventario_destino}</span>
                     </div>
 
                     <div className="w-[10%] flex items-center justify-end gap-2 pr-2">
