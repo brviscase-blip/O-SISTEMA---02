@@ -4,7 +4,7 @@ import {
   Package, Trash2, Save, Loader2, Plus, Edit3, 
   FlaskConical, Crown, Box, Search, Upload, 
   CheckCircle2, ChevronDown, Database, Info, 
-  TrendingUp, Zap, Coins, FileSpreadsheet
+  TrendingUp, Zap, Coins, FileSpreadsheet, MapPin, Percent
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
 import * as XLSX from 'xlsx';
@@ -32,7 +32,8 @@ const InventoryNexus: React.FC = () => {
 
   const initialForm = {
     nome: '', categoria: 'CONSUMÍVEL', inventario_destino: 'Consumíveis',
-    efeito: '', uso_principal: '', rank: 'E', valor_venda: 0, img: ''
+    efeito: '', uso_principal: '', rank: 'E', valor_venda: 0, img: '',
+    territorio: '', probabilidade: 0
   };
 
   const [formData, setFormData] = useState(initialForm);
@@ -41,11 +42,10 @@ const InventoryNexus: React.FC = () => {
     const client = getSupabaseClient();
     setIsLoading(true);
     try {
-      const { data } = await client.from('inventario_nexus').select('*').order('categoria', { ascending: true });
+      const { data } = await client.from('inventario_nexus').select('*').order('probabilidade', { ascending: true });
       setItems(data || []);
     } catch (err) {
       console.error(err);
-      alert("Falha ao sincronizar banco de dados de ativos.");
     } finally {
       setIsLoading(false);
     }
@@ -61,13 +61,15 @@ const InventoryNexus: React.FC = () => {
       'INVENTÁRIO DESTINO': i.inventario_destino,
       'EFEITO / STATUS': i.efeito,
       'USO PRINCIPAL': i.uso_principal,
+      'TERRITÓRIO': i.territorio,
+      'PROBABILIDADE': `${i.probabilidade}%`,
       'VALOR (OURO)': i.valor_venda
     }));
 
     const ws = XLSX.utils.json_to_sheet(dataToExport);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Inventario_Ativos");
-    XLSX.writeFile(wb, "Nexus_Inventario_Database.xlsx");
+    XLSX.writeFile(wb, "Nexus_Inventario_Master.xlsx");
   };
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -82,7 +84,7 @@ const InventoryNexus: React.FC = () => {
       const { data: { publicUrl } } = client.storage.from('armas-imgs').getPublicUrl(`inventario/${fileName}`);
       setFormData(prev => ({ ...prev, img: publicUrl }));
     } catch (err) {
-      alert("Erro no upload do visual do item.");
+      alert("Erro no upload do visual.");
     } finally {
       setIsUploading(false);
     }
@@ -102,16 +104,16 @@ const InventoryNexus: React.FC = () => {
       setFormData(initialForm);
       setEditingId(null);
       fetchData();
-      alert("Ativo de Inventário Sincronizado.");
+      alert("Registro de Ativo Sincronizado.");
     } catch (err) {
-      alert("Falha na recalibração do item.");
+      alert("Falha na gravação de dados.");
     } finally {
       setIsSaving(false);
     }
   };
 
   const deleteItem = async (id: string) => {
-    if (!window.confirm("CONFIRMAR EXPURGO DO ATIVO?")) return;
+    if (!window.confirm("EXPURGAR ATIVO?")) return;
     const client = getSupabaseClient();
     await client.from('inventario_nexus').delete().eq('id', id);
     fetchData();
@@ -122,27 +124,17 @@ const InventoryNexus: React.FC = () => {
       <div className="flex items-center justify-between border-b border-slate-800 pb-6">
         <div>
           <h2 className="text-2xl font-black text-white italic tracking-tighter uppercase">Nexus de Inventário</h2>
-          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Sincronização de Ativos Não-Bélicos</p>
+          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.3em] mt-1">Gestão de Probabilidade e Efeitos de Ativos</p>
         </div>
-        
-        <div className="flex gap-4">
-          <button 
-            onClick={exportToExcel}
-            className="flex items-center gap-2 px-6 py-3 bg-emerald-600/10 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest rounded-sm"
-          >
-            <FileSpreadsheet size={16} /> Exportar Banco (XLSX)
-          </button>
-          <div className="flex items-center gap-3 bg-[#030712] border border-slate-800 p-3 rounded-sm">
-            <Database size={14} className="text-emerald-500" />
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{items.length} Itens em Registro</span>
-          </div>
-        </div>
+        <button onClick={exportToExcel} className="flex items-center gap-2 px-6 py-3 bg-emerald-600/10 border border-emerald-500/40 text-emerald-400 hover:bg-emerald-600 hover:text-white transition-all text-[10px] font-black uppercase tracking-widest rounded-sm">
+          <FileSpreadsheet size={16} /> Exportar Banco (XLSX)
+        </button>
       </div>
 
       <div className="bg-[#030712] border border-slate-800 p-8 rounded-sm relative shadow-2xl overflow-hidden group">
-        <div className={`absolute top-0 left-0 w-1 h-full transition-colors duration-500 ${editingId ? 'bg-amber-500' : 'bg-emerald-600'}`} />
+        <div className={`absolute top-0 left-0 w-1 h-full transition-colors duration-500 ${editingId ? 'bg-amber-500' : 'bg-blue-600'}`} />
         <h3 className="text-[11px] font-black text-white uppercase tracking-[0.4em] mb-10 flex items-center gap-3">
-          {editingId ? <Edit3 size={18} className="text-amber-500" /> : <Plus size={18} className="text-emerald-500" />}
+          {editingId ? <Edit3 size={18} className="text-amber-500" /> : <Plus size={18} className="text-blue-500" />}
           {editingId ? 'RECALIBRAR ATIVO' : 'REGISTRAR NOVO ATIVO'}
         </h3>
 
@@ -152,27 +144,18 @@ const InventoryNexus: React.FC = () => {
             <div className="md:col-span-3"><FormGroup label="CATEGORIA" type="select" options={CATEGORIAS} value={formData.categoria} onChange={(v:any) => setFormData({...formData, categoria:v})} /></div>
             <div className="md:col-span-4"><FormGroup label="INVENTÁRIO DESTINO" type="select" options={DESTINOS} value={formData.inventario_destino} onChange={(v:any) => setFormData({...formData, inventario_destino:v})} /></div>
             
-            <div className="md:col-span-6"><FormGroup label="EFEITO DE SISTEMA / ATRIBUTO" value={formData.efeito} onChange={(v:any) => setFormData({...formData, efeito:v})} placeholder="Ex: +30% Poder Vital (Dungeon)" /></div>
-            <div className="md:col-span-6"><FormGroup label="USO PRINCIPAL" value={formData.uso_principal} onChange={(v:any) => setFormData({...formData, uso_principal:v})} placeholder="Ex: Sobrevivência imediata" /></div>
+            <div className="md:col-span-6"><FormGroup label="EFEITO DE SISTEMA / ATRIBUTO" value={formData.efeito} onChange={(v:any) => setFormData({...formData, efeito:v})} placeholder="Ex: +5 Vitalidade Real (Permanente)" /></div>
+            <div className="md:col-span-6"><FormGroup label="USO PRINCIPAL" value={formData.uso_principal} onChange={(v:any) => setFormData({...formData, uso_principal:v})} placeholder="Ex: Upgrade de Personagem" /></div>
 
+            <div className="md:col-span-4"><FormGroup label="TERRITÓRIO DE ORIGEM" value={formData.territorio} onChange={(v:any) => setFormData({...formData, territorio:v})} placeholder="Ex: Templo de Carthenon" /></div>
+            <div className="md:col-span-2"><FormGroup label="PROBABILIDADE (%)" type="number" value={formData.probabilidade} onChange={(v:any) => setFormData({...formData, probabilidade:v})} /></div>
             <div className="md:col-span-2"><FormGroup label="RANK" type="select" options={RANKS} value={formData.rank} onChange={(v:any) => setFormData({...formData, rank:v})} /></div>
             <div className="md:col-span-2"><FormGroup label="VALOR (OURO)" type="number" value={formData.valor_venda} onChange={(v:any) => setFormData({...formData, valor_venda:v})} /></div>
             
-            <div className="md:col-span-5">
-               <label className="text-[8px] font-black text-slate-500 uppercase tracking-widest ml-1 block mb-2">Upload Visual</label>
-               <div onClick={() => !isUploading && fileInputRef.current?.click()} className="w-full h-12 bg-slate-950 border border-slate-800 rounded-sm flex items-center px-4 cursor-pointer hover:border-emerald-500 transition-all overflow-hidden shadow-inner">
-                  <input type="file" ref={fileInputRef} className="hidden" accept="image/*" onChange={handleImageUpload} />
-                  <div className="flex items-center justify-between w-full">
-                    <span className="text-[10px] font-bold text-slate-600 uppercase italic">{isUploading ? 'Sincronizando...' : formData.img ? 'Registro OK' : 'Selecionar .PNG'}</span>
-                    {formData.img && <img src={formData.img} className="w-8 h-8 rounded-sm object-cover border border-slate-800" />}
-                  </div>
-               </div>
-            </div>
-
-            <div className="md:col-span-3 pt-6">
-              <button type="submit" disabled={isSaving || isUploading} className={`w-full h-12 ${editingId ? 'bg-amber-600' : 'bg-emerald-600'} text-white text-[11px] font-black uppercase transition-all rounded-sm shadow-xl active:scale-95 flex items-center justify-center gap-2`}>
+            <div className="md:col-span-2 pt-6">
+              <button type="submit" disabled={isSaving || isUploading} className={`w-full h-12 ${editingId ? 'bg-amber-600' : 'bg-blue-600'} text-white text-[11px] font-black uppercase transition-all rounded-sm shadow-xl active:scale-95 flex items-center justify-center gap-2`}>
                 {isSaving ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                {editingId ? 'ATUALIZAR' : 'REGISTRAR NO NEXUS'}
+                {editingId ? 'ATUALIZAR' : 'REGISTRAR'}
               </button>
             </div>
           </div>
@@ -181,11 +164,12 @@ const InventoryNexus: React.FC = () => {
 
       <div className="space-y-4">
          <div className="bg-slate-900/30 border border-slate-800/50 h-10 flex items-center px-6 rounded-sm w-full font-black text-[9px] text-slate-500 uppercase tracking-widest">
-            <div className="w-[25%]">ATIVO IDENTIFICADO</div>
-            <div className="w-[15%] text-center">CATEGORIA / RANK</div>
-            <div className="w-[15%] text-center">DESTINO</div>
+            <div className="w-[20%]">ATIVO</div>
+            <div className="w-[12%] text-center">RANK/CATEGORIA</div>
+            <div className="w-[15%] text-center">LOCALIZAÇÃO</div>
+            <div className="w-[10%] text-center">PROB.</div>
             <div className="w-[20%] text-center">EFEITO</div>
-            <div className="w-[15%] text-center">VALOR</div>
+            <div className="w-[13%] text-center">DESTINO</div>
             <div className="w-[10%] text-right pr-4">AÇÕES</div>
          </div>
 
@@ -196,35 +180,43 @@ const InventoryNexus: React.FC = () => {
                   <div key={item.id} className="bg-[#030712] border border-slate-800 h-20 flex items-center px-6 group hover:border-slate-600 transition-all relative overflow-hidden rounded-sm w-full shadow-lg">
                     <div className={`absolute left-0 top-0 h-full w-1 ${theme.color.replace('text', 'bg')}`} />
                     
-                    <div className="w-[25%] flex items-center gap-4">
+                    <div className="w-[20%] flex items-center gap-4">
                        <div className="w-12 h-12 bg-slate-950 border border-slate-800 rounded-sm flex items-center justify-center overflow-hidden flex-shrink-0">
                           {item.img ? <img src={item.img} className="w-full h-full object-cover" /> : <div className={theme.color}>{theme.icon}</div>}
                        </div>
                        <div className="flex flex-col min-w-0">
                           <h4 className="text-[12px] font-black text-white uppercase italic truncate">{item.nome}</h4>
-                          <span className="text-[8px] font-bold text-slate-600 uppercase mt-1 truncate">{item.uso_principal}</span>
+                          <span className="text-[8px] font-bold text-slate-600 uppercase mt-1 truncate italic">Rank {item.rank}</span>
                        </div>
                     </div>
 
-                    <div className="w-[15%] text-center flex flex-col items-center">
-                        <div className={`flex items-center gap-2 px-2 py-0.5 rounded-sm border ${theme.border} ${theme.color} text-[8px] font-black uppercase mb-1`}>
+                    <div className="w-[12%] text-center">
+                        <div className={`inline-flex items-center gap-2 px-2 py-0.5 rounded-sm border ${theme.border} ${theme.color} text-[8px] font-black uppercase`}>
                            {theme.icon} {item.categoria}
                         </div>
-                        <span className="text-[9px] font-bold text-slate-600 uppercase tracking-tighter italic">RANK {item.rank}</span>
                     </div>
 
-                    <div className="w-[15%] text-center">
-                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.inventario_destino}</span>
+                    <div className="w-[15%] text-center px-2">
+                       <div className="flex items-center justify-center gap-1 text-[9px] font-black text-blue-400 uppercase italic">
+                          <MapPin size={10} />
+                          <span className="truncate">{item.territorio || 'GLOBAL'}</span>
+                       </div>
+                    </div>
+
+                    <div className="w-[10%] text-center">
+                       <div className="flex items-center justify-center gap-1 text-emerald-400 font-black italic">
+                          <Percent size={12} />
+                          <span className="text-sm">{item.probabilidade}%</span>
+                       </div>
                     </div>
 
                     <div className="w-[20%] text-center px-4">
                        <p className="text-[10px] font-black text-white italic truncate leading-none uppercase tracking-tighter">{item.efeito || 'N/A'}</p>
-                       <span className="text-[7px] text-slate-600 font-bold uppercase mt-1 block">Propriedade de Sistema</span>
+                       <span className="text-[7px] text-slate-600 font-bold uppercase mt-1 block truncate">{item.uso_principal}</span>
                     </div>
 
-                    <div className="w-[15%] text-center flex items-center justify-center gap-2">
-                       <Coins size={12} className="text-amber-500" />
-                       <span className="text-xs font-black text-white tabular-nums italic">{item.valor_venda}</span>
+                    <div className="w-[13%] text-center">
+                       <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{item.inventario_destino}</span>
                     </div>
 
                     <div className="w-[10%] flex items-center justify-end gap-2 pr-2">
@@ -245,13 +237,13 @@ const FormGroup = ({ label, type="text", value, onChange, options, placeholder }
     <label className="text-[9px] font-black text-slate-500 uppercase tracking-[0.2em] ml-1">{label}</label>
     {type === 'select' ? (
       <div className="relative group">
-        <select value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 text-[11px] text-white outline-none focus:border-emerald-500 transition-all cursor-pointer h-12 uppercase font-black appearance-none shadow-inner">
+        <select value={String(value ?? '')} onChange={(e) => onChange(e.target.value)} className="w-full bg-slate-950 border border-slate-800 px-4 py-3 text-[11px] text-white outline-none focus:border-blue-500 transition-all cursor-pointer h-12 uppercase font-black appearance-none shadow-inner">
           {(options || []).map((o:any) => <option key={String(o)} value={String(o)} className="bg-[#030712]">{String(o)}</option>)}
         </select>
-        <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none group-hover:text-emerald-400 transition-colors" />
+        <ChevronDown size={16} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none group-hover:text-blue-400 transition-colors" />
       </div>
     ) : (
-      <input type={type === 'number' ? 'number' : 'text'} value={value ?? (type === 'number' ? 0 : '')} onChange={(e) => onChange(type === 'number' ? Number(e.target.value) : e.target.value)} placeholder={placeholder} className="w-full bg-slate-950 border border-slate-800 px-5 py-3 text-[11px] text-white outline-none focus:border-emerald-500 placeholder:text-slate-900 font-black transition-all h-12 shadow-inner italic" />
+      <input type={type === 'number' ? 'number' : 'text'} step={type === 'number' ? '0.1' : undefined} value={value ?? (type === 'number' ? 0 : '')} onChange={(e) => onChange(type === 'number' ? Number(e.target.value) : e.target.value)} placeholder={placeholder} className="w-full bg-slate-950 border border-slate-800 px-5 py-3 text-[11px] text-white outline-none focus:border-blue-500 placeholder:text-slate-900 font-black transition-all h-12 shadow-inner italic" />
     )}
   </div>
 );

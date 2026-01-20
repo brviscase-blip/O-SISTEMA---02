@@ -242,6 +242,9 @@ const PlayerStatusWindow: React.FC<Props> = ({
         isOpen={inventoryModal.isOpen}
         onClose={() => setInventoryModal({ ...inventoryModal, isOpen: false })}
         type={inventoryModal.type}
+        playerStatus={status}
+        setPlayerStatus={onUpdatePlayer as any}
+        addNotification={addNotification}
       />
       {selectedWeaponDetail && (
         <WeaponDetailModal 
