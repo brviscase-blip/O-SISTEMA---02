@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { 
   User, Zap, Heart, Sparkles, TrendingUp, Shield, 
   Skull, Swords, Target, Flame, Trophy, MapPin,
-  Activity, Crown, Loader2, Save, RotateCcw
+  Activity, Crown, Loader2, Save, Settings2, Edit3
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
 import { getXPNeeded, getMaxGlobalHP } from '../App';
@@ -28,21 +28,28 @@ const RANK_COLORS: Record<string, string> = {
 
 const PlayerNexus: React.FC = () => {
   const [player, setPlayer] = useState<any>(null);
+  const [configs, setConfigs] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isSyncing, setIsSyncing] = useState(false);
+  const [isSavingConfig, setIsSavingConfig] = useState(false);
 
   const fetchPlayerData = async () => {
     const client = getSupabaseClient();
     const { data: { user } } = await client.auth.getUser();
     if (!user) return;
 
-    const { data } = await client
+    const { data: playerData } = await client
       .from('player_survival')
       .select('*')
       .eq('user_id', user.id)
       .maybeSingle();
     
-    setPlayer(data);
+    const { data: configData } = await client
+      .from('system_configs')
+      .select('*');
+    
+    setPlayer(playerData);
+    setConfigs(configData || []);
     setIsLoading(false);
   };
 
@@ -50,25 +57,43 @@ const PlayerNexus: React.FC = () => {
     fetchPlayerData();
   }, []);
 
-  const addXP = async (amount: number, source: string) => {
+  const handleUpdateConfig = (id: string, newXp: number) => {
+    setConfigs(prev => prev.map(c => c.id === id ? { ...c, xp_reward: newXp } : c));
+  };
+
+  const saveConfigs = async () => {
+    setIsSavingConfig(true);
+    const client = getSupabaseClient();
+    for (const conf of configs) {
+      await client.from('system_configs').update({ xp_reward: conf.xp_reward }).eq('id', conf.id);
+    }
+    setIsSavingConfig(false);
+    alert("Protocolos de Sistema Recalibrados.");
+  };
+
+  const addXP = async (id: string) => {
     if (!player || isSyncing) return;
+    const config = configs.find(c => c.id === id);
+    if (!config) return;
+
     setIsSyncing(true);
+    const amount = config.xp_reward;
     
     let newXP = player.current_xp + amount;
     let newLevel = player.level;
     let newRank = player.rank;
 
-    // Lógica de Level Up Sincronizada
+    // --- MOTOR DE PROGRESSÃO SINCRONIZADO ---
     while (newXP >= getXPNeeded(newLevel)) {
       newXP -= getXPNeeded(newLevel);
       newLevel++;
       
-      // Evolução de Rank baseada no Level Global
+      // Evolução de Rank baseada nos limites do RankSelector.tsx
       if (newLevel >= 100 && newLevel < 200) newRank = 'D';
-      else if (newLevel >= 200 && newLevel < 400) newRank = 'C';
-      else if (newLevel >= 400 && newLevel < 600) newRank = 'B';
-      else if (newLevel >= 600 && newLevel < 800) newRank = 'A';
-      else if (newLevel >= 800) newRank = 'S';
+      else if (newLevel >= 200 && newLevel < 300) newRank = 'C';
+      else if (newLevel >= 300 && newLevel < 400) newRank = 'B';
+      else if (newLevel >= 400 && newLevel < 500) newRank = 'A';
+      else if (newLevel >= 500) newRank = 'S';
     }
 
     const newMaxHP = getMaxGlobalHP(newLevel);
@@ -80,10 +105,9 @@ const PlayerNexus: React.FC = () => {
       level: newLevel,
       rank: newRank,
       max_global_hp: newMaxHP,
-      max_dungeon_hp: newMaxHP,
+      max_dungeon_hp: 100 + (newLevel * 15),
       max_mp: newMaxMP,
-      current_global_hp: newMaxHP,
-      current_dungeon_hp: newMaxHP,
+      current_global_hp: newMaxHP, // Restaura vida ao upar (Dopamina Reward)
       current_mp: newMaxMP,
       last_sync: new Date().toISOString()
     }).eq('id', player.id);
@@ -104,7 +128,6 @@ const PlayerNexus: React.FC = () => {
        <div className="bg-rose-500/10 border border-rose-500/20 p-8 text-center rounded-sm">
           <Skull size={48} className="text-rose-500 mx-auto mb-4" />
           <h2 className="text-xl font-black text-white uppercase italic">Protocolo não inicializado</h2>
-          <p className="text-[10px] text-slate-500 uppercase mt-2">Aguardando registro no banco de dados central.</p>
        </div>
     </div>
   );
@@ -116,7 +139,7 @@ const PlayerNexus: React.FC = () => {
 
   return (
     <div className="p-6 space-y-8 animate-in fade-in duration-500 max-w-[1400px] mx-auto pb-40">
-      {/* HEADER: PLAYER IDENTITY */}
+      {/* HEADER IDENTITY */}
       <div className="bg-[#030712] border border-slate-800 p-8 rounded-sm flex flex-col lg:flex-row items-center justify-between gap-8 relative overflow-hidden shadow-2xl">
         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
           <Activity size={120} className="text-slate-800" />
@@ -139,30 +162,84 @@ const PlayerNexus: React.FC = () => {
            <MapPin size={16} className="text-blue-500" />
            <div>
               <p className="text-[8px] font-black text-slate-600 uppercase tracking-widest">Território Atual</p>
-              <h3 className="text-sm font-black text-white uppercase italic tracking-tight">{TERRITORIOS_RANK[player.rank]}</h3>
+              <h3 className="text-sm font-black text-white uppercase italic tracking-tight">{TERRITORIOS_RANK[player.rank] || 'NEXUS CENTRAL'}</h3>
            </div>
         </div>
       </div>
 
-      {/* VITAL BARS (PRECISÃO MATEMÁTICA) */}
+      {/* VITAL BARS */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <StatusPanel label="VITALIDADE GLOBAL (HP)" value={player.current_global_hp} max={player.max_global_hp} percent={hpPercent} color="bg-emerald-600" glow="shadow-emerald-500/20" icon={<Heart size={14} className="text-emerald-500" />} />
         <StatusPanel label="ENERGIA DIMENSIONAL (MP)" value={player.current_mp} max={player.max_mp} percent={mpPercent} color="bg-blue-600" glow="shadow-blue-500/20" icon={<Sparkles size={14} className="text-blue-500" />} />
         <StatusPanel label={`XP PROGRESSÃO`} value={player.current_xp} max={xpNext} percent={xpPercent} color="bg-gradient-to-r from-amber-500 to-purple-600" glow="shadow-amber-500/20" icon={<TrendingUp size={14} className="text-amber-500" />} />
       </div>
 
-      {/* ACTIONS */}
+      {/* REWARD CONFIG */}
+      <div className="bg-[#030712] border border-slate-800 p-8 rounded-sm">
+        <div className="flex items-center justify-between mb-8">
+           <h3 className="text-[10px] font-black text-white uppercase tracking-[0.4em] flex items-center gap-2">
+             <Settings2 size={14} className="text-blue-500" /> Protocolos de Recompensa (XP)
+           </h3>
+           <button onClick={saveConfigs} disabled={isSavingConfig} className="flex items-center gap-2 px-6 py-2 bg-blue-600 hover:bg-blue-500 text-white text-[10px] font-black uppercase rounded-sm transition-all shadow-lg active:scale-95 disabled:opacity-50">
+              {isSavingConfig ? <Loader2 size={12} className="animate-spin"/> : <Save size={12}/>} Salvar Configurações
+           </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+           {configs.map((conf) => (
+             <div key={conf.id} className="bg-black/40 border border-slate-800 p-4 rounded-sm flex flex-col gap-3 group hover:border-blue-500/30 transition-all">
+                <div className="flex items-center justify-between">
+                   <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{conf.label}</span>
+                   <Edit3 size={10} className="text-slate-700 group-hover:text-blue-500" />
+                </div>
+                <div className="flex items-center gap-2">
+                   <input 
+                     type="number" 
+                     value={conf.xp_reward} 
+                     onChange={(e) => handleUpdateConfig(conf.id, parseInt(e.target.value) || 0)}
+                     className="flex-1 bg-slate-950 border border-slate-800 p-3 text-xs font-black text-white italic outline-none focus:border-blue-500 transition-all tabular-nums"
+                   />
+                </div>
+             </div>
+           ))}
+        </div>
+      </div>
+
+      {/* ACTION INJECTION */}
       <div className="bg-[#030712] border border-slate-800 p-8 rounded-sm">
         <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-8 flex items-center gap-2">
           <Zap size={14} className="text-blue-500" /> Injetar Atividade de Sistema
         </h3>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
-           <ActionBtn label="Dungeon Azul" xp={100} icon={<Swords size={16}/>} onClick={() => addXP(100, 'BLUE_DUNGEON')} color="bg-blue-600" />
-           <ActionBtn label="Dungeon Vermelha" xp={300} icon={<Flame size={16}/>} onClick={() => addXP(300, 'RED_DUNGEON')} color="bg-rose-600" />
-           <ActionBtn label="Masmorra de Trial" xp={1000} icon={<Trophy size={16}/>} onClick={() => addXP(1000, 'TRIAL')} color="bg-amber-600" />
-           <ActionBtn label="Hábito Completo" xp={50} icon={<Zap size={16}/>} onClick={() => addXP(50, 'HABIT')} color="bg-purple-600" />
-           <ActionBtn label="Missão Diária" xp={20} icon={<Target size={16}/>} onClick={() => addXP(20, 'TASK')} color="bg-slate-700" />
-           <ActionBtn label="Vício Vencido" xp={200} icon={<Shield size={16}/>} onClick={() => addXP(200, 'VICE_VICTORY')} color="bg-emerald-600" />
+           {configs.map((conf) => {
+             const icons: Record<string, any> = {
+               'BLUE_DUNGEON': <Swords size={16}/>,
+               'RED_DUNGEON': <Flame size={16}/>,
+               'TRIAL': <Trophy size={16}/>,
+               'HABIT': <Zap size={16}/>,
+               'TASK': <Target size={16}/>,
+               'VICE_VICTORY': <Shield size={16}/>
+             };
+             const colors: Record<string, string> = {
+               'BLUE_DUNGEON': 'bg-blue-600',
+               'RED_DUNGEON': 'bg-rose-600',
+               'TRIAL': 'bg-amber-600',
+               'HABIT': 'bg-purple-600',
+               'TASK': 'bg-slate-700',
+               'VICE_VICTORY': 'bg-emerald-600'
+             };
+
+             return (
+               <ActionBtn 
+                 key={conf.id}
+                 label={conf.label} 
+                 xp={conf.xp_reward} 
+                 icon={icons[conf.id]} 
+                 onClick={() => addXP(conf.id)} 
+                 color={colors[conf.id]} 
+               />
+             );
+           })}
         </div>
       </div>
     </div>
@@ -184,7 +261,10 @@ const StatusPanel = ({ label, value, max, percent, color, icon, glow }: any) => 
 const ActionBtn = ({ label, xp, icon, onClick, color }: any) => (
   <button onClick={onClick} className="group flex flex-col items-center justify-center p-4 bg-slate-900/40 border border-slate-800 hover:border-blue-500/50 transition-all rounded-sm gap-2">
     <div className={`w-10 h-10 ${color} text-white rounded-full flex items-center justify-center shadow-lg group-hover:scale-110 transition-transform`}>{icon}</div>
-    <div className="text-center"><p className="text-[8px] font-black text-white uppercase leading-tight">{label}</p><p className="text-[7px] font-bold text-blue-500 uppercase mt-1">+{xp} XP</p></div>
+    <div className="text-center">
+      <p className="text-[8px] font-black text-white uppercase leading-tight">{label}</p>
+      <p className="text-[7px] font-bold text-blue-500 uppercase mt-1">+{xp} XP</p>
+    </div>
   </button>
 );
 
