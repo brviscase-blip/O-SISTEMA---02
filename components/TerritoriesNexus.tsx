@@ -22,6 +22,11 @@ const getRankTheme = (rank: string) => {
   }
 };
 
+interface LinkedItem {
+  nome: string;
+  rank: string;
+}
+
 const TerritoriesNexus: React.FC = () => {
   const [territories, setTerritories] = useState<any[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -30,13 +35,13 @@ const TerritoriesNexus: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
-  // Opções vinculadas de outros Nexos
+  // Opções vinculadas agora armazenam objeto com nome e rank para filtragem estrita
   const [options, setOptions] = useState({
-    consumables: [] as string[],
-    relics: [] as string[],
-    materials: [] as string[],
-    armors: [] as string[],
-    weapons: [] as string[],
+    consumables: [] as LinkedItem[],
+    relics: [] as LinkedItem[],
+    materials: [] as LinkedItem[],
+    armors: [] as LinkedItem[],
+    weapons: [] as LinkedItem[],
     minions: [] as string[],
     bosses: [] as string[]
   });
@@ -63,16 +68,16 @@ const TerritoriesNexus: React.FC = () => {
     const fetchLinkedOptions = async () => {
       const client = getSupabaseClient();
       
-      // Buscar Ativos do Inventário
-      const { data: inv } = await client.from('inventario_nexus').select('nome, categoria');
+      // Buscar Ativos do Inventário com Rank para filtragem
+      const { data: inv } = await client.from('inventario_nexus').select('nome, rank, categoria');
       
-      // Buscar Armaduras
-      const { data: armors } = await client.from('armaduras').select('nome');
+      // Buscar Armaduras com Rank
+      const { data: armors } = await client.from('armaduras').select('nome, rank');
       
-      // Buscar Armas
-      const { data: weapons } = await client.from('armas').select('nome');
+      // Buscar Armas com Rank
+      const { data: weapons } = await client.from('armas').select('nome, rank');
       
-      // BUSCAR INIMIGOS DIRETAMENTE DO SUPABASE (Bestiário v3.0)
+      // Buscar Inimigos
       const { data: enemies } = await client
         .from('inimigos')
         .select('nome, tipo')
@@ -92,11 +97,11 @@ const TerritoriesNexus: React.FC = () => {
       }
 
       setOptions({
-        consumables: inv?.filter(i => i.categoria === 'CONSUMÍVEL').map(i => i.nome) || [],
-        relics: inv?.filter(i => i.categoria === 'RELÍQUIA').map(i => i.nome) || [],
-        materials: inv?.filter(i => i.categoria === 'MATERIAL DE REFINO').map(i => i.nome) || [],
-        armors: armors?.map(a => a.nome) || [],
-        weapons: weapons?.map(w => w.nome) || [],
+        consumables: inv?.filter(i => i.categoria === 'CONSUMÍVEL').map(i => ({ nome: i.nome, rank: i.rank })) || [],
+        relics: inv?.filter(i => i.categoria === 'RELÍQUIA').map(i => ({ nome: i.nome, rank: i.rank })) || [],
+        materials: inv?.filter(i => i.categoria === 'MATERIAL DE REFINO').map(i => ({ nome: i.nome, rank: i.rank })) || [],
+        armors: armors?.map(a => ({ nome: a.nome, rank: a.rank })) || [],
+        weapons: weapons?.map(w => ({ nome: w.nome, rank: w.rank })) || [],
         minions: minionsList,
         bosses: bossesList
       });
@@ -156,7 +161,6 @@ const TerritoriesNexus: React.FC = () => {
 
   return (
     <div className="p-6 space-y-10 animate-in fade-in duration-500 max-w-[1600px] mx-auto pb-40">
-      {/* HEADER DE COMANDO */}
       <div className="flex flex-col md:flex-row items-center justify-between gap-6 border-b border-slate-800 pb-8">
         <div className="flex items-center gap-4">
           <div className="w-14 h-14 bg-blue-600/10 border border-blue-500/40 rounded flex items-center justify-center text-blue-500 shadow-[0_0_30px_rgba(37,99,235,0.15)]">
@@ -185,7 +189,6 @@ const TerritoriesNexus: React.FC = () => {
         </div>
       </div>
 
-      {/* GRADE DE CARDS */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
          <button 
            onClick={() => { setEditingId(null); setFormData(initialForm); setIsModalOpen(true); }}
@@ -246,7 +249,6 @@ const TerritoriesNexus: React.FC = () => {
          })}
       </div>
 
-      {/* MODAL DE CADASTRO/EDIÇÃO */}
       {isModalOpen && (
         <div className="fixed inset-0 z-[9000] bg-black/90 backdrop-blur-xl flex items-center justify-center p-4 animate-in fade-in duration-300">
            <div className="w-full max-w-5xl bg-[#030712] border border-slate-800 rounded-sm shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
@@ -259,7 +261,6 @@ const TerritoriesNexus: React.FC = () => {
 
               <form onSubmit={handleSave} className="flex-1 overflow-y-auto custom-scrollbar p-8">
                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                    {/* Visual & Core */}
                     <div className="lg:col-span-4 space-y-6">
                        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">MAPA VISUAL (.PNG)</label>
                        <div 
@@ -277,14 +278,13 @@ const TerritoriesNexus: React.FC = () => {
                        <FormGroup label="RANK" type="select" options={RANKS} value={formData.rank} onChange={(v:any) => setFormData({...formData, rank:v})} />
                     </div>
 
-                    {/* Espólios & Ameaças */}
                     <div className="lg:col-span-8 space-y-8">
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <LinkedMultiSelect label="CONSUMÍVEIS" icon={<FlaskConical size={12}/>} options={options.consumables} selected={formData.consumiveis} onChange={(val: string[]) => setFormData({...formData, consumiveis: val})} />
-                          <LinkedMultiSelect label="RELÍQUIAS" icon={<Crown size={12}/>} options={options.relics} selected={formData.reliquias} onChange={(val: string[]) => setFormData({...formData, reliquias: val})} />
-                          <LinkedMultiSelect label="MATERIAL DE REFINO" icon={<Gem size={12}/>} options={options.materials} selected={formData.materiais} onChange={(val: string[]) => setFormData({...formData, materiais: val})} />
-                          <LinkedMultiSelect label="ARMADURAS" icon={<Shield size={12}/>} options={options.armors} selected={formData.armaduras} onChange={(val: string[]) => setFormData({...formData, armaduras: val})} />
-                          <LinkedMultiSelect label="ARSENAL" icon={<Sword size={12}/>} options={options.weapons} selected={formData.arsenal} onChange={(val: string[]) => setFormData({...formData, arsenal: val})} />
+                          <LinkedMultiSelect label="CONSUMÍVEIS" icon={<FlaskConical size={12}/>} options={options.consumables} targetRank={formData.rank} selected={formData.consumiveis} onChange={(val: string[]) => setFormData({...formData, consumiveis: val})} />
+                          <LinkedMultiSelect label="RELÍQUIAS" icon={<Crown size={12}/>} options={options.relics} targetRank={formData.rank} selected={formData.reliquias} onChange={(val: string[]) => setFormData({...formData, reliquias: val})} />
+                          <LinkedMultiSelect label="MATERIAL DE REFINO" icon={<Gem size={12}/>} options={options.materials} targetRank={formData.rank} selected={formData.materiais} onChange={(val: string[]) => setFormData({...formData, materiais: val})} />
+                          <LinkedMultiSelect label="ARMADURAS" icon={<Shield size={12}/>} options={options.armors} targetRank={formData.rank} selected={formData.armaduras} onChange={(val: string[]) => setFormData({...formData, armaduras: val})} />
+                          <LinkedMultiSelect label="ARSENAL" icon={<Sword size={12}/>} options={options.weapons} targetRank={formData.rank} selected={formData.arsenal} onChange={(val: string[]) => setFormData({...formData, arsenal: val})} />
                           
                           <div className="space-y-6">
                              <FormGroup 
@@ -347,7 +347,14 @@ const FormGroup = ({ label, type="text", value, onChange, options, icon, placeho
   </div>
 );
 
-const LinkedMultiSelect = ({ label, icon, options, selected, onChange }: any) => {
+const LinkedMultiSelect = ({ label, icon, options, targetRank, selected, onChange }: { 
+  label: string, 
+  icon: React.ReactNode, 
+  options: LinkedItem[], 
+  targetRank: string, 
+  selected: string[], 
+  onChange: (val: string[]) => void 
+}) => {
   const toggleItem = (item: string) => {
     if (selected.includes(item)) {
       onChange(selected.filter((i: string) => i !== item));
@@ -356,29 +363,40 @@ const LinkedMultiSelect = ({ label, icon, options, selected, onChange }: any) =>
     }
   };
 
+  // Filtragem rigorosa por Rank
+  const availableOptions = options.filter(opt => opt.rank === targetRank);
+
   return (
     <div className="space-y-2">
-      <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">{icon} {label}</label>
+      <div className="flex items-center justify-between ml-1">
+        <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">{icon} {label}</label>
+        <span className={`text-[8px] font-black uppercase px-2 py-0.5 rounded-sm bg-black/40 border ${getRankTheme(targetRank).text} ${getRankTheme(targetRank).border}`}>
+           Sincronia Rank {targetRank}
+        </span>
+      </div>
       <div className="bg-slate-950 border border-slate-800 rounded-sm p-4 h-32 overflow-y-auto custom-scrollbar flex flex-wrap gap-2 content-start group hover:border-slate-700 transition-all">
-         {options.length === 0 ? (
-           <p className="text-[8px] font-bold text-slate-800 uppercase italic w-full text-center py-8">Nenhum item detectado no Nexus</p>
-         ) : options.map((opt: string) => (
+         {availableOptions.length === 0 ? (
+           <div className="w-full flex flex-col items-center justify-center py-6 opacity-30">
+              <Shield size={24} className="text-slate-700 mb-2" />
+              <p className="text-[8px] font-black text-slate-600 uppercase italic text-center">Nenhum item Rank {targetRank} detectado</p>
+           </div>
+         ) : availableOptions.map((opt) => (
            <button
-             key={opt}
+             key={opt.nome}
              type="button"
-             onClick={() => toggleItem(opt)}
+             onClick={() => toggleItem(opt.nome)}
              className={`px-3 py-1.5 rounded-sm text-[9px] font-black uppercase transition-all border ${
-               selected.includes(opt) 
+               selected.includes(opt.nome) 
                  ? 'bg-blue-600 border-blue-400 text-white shadow-lg' 
                  : 'bg-slate-900 border-slate-800 text-slate-500 hover:border-slate-600'
              }`}
            >
-             {opt}
+             {opt.nome}
            </button>
          ))}
       </div>
       <div className="flex justify-between items-center px-1">
-        <span className="text-[8px] font-bold text-slate-600 uppercase">Vínculos Ativos: {selected.length}</span>
+        <span className="text-[8px] font-bold text-slate-600 uppercase">Vínculos Ativos: {selected.filter(s => options.find(o => o.nome === s && o.rank === targetRank)).length}</span>
         <button type="button" onClick={() => onChange([])} className="text-[8px] font-black text-rose-500 hover:text-rose-400 uppercase">Limpar Tudo</button>
       </div>
     </div>
