@@ -25,6 +25,7 @@ const getRankTheme = (rank: string) => {
 
 const WeaponsNexus: React.FC = () => {
   const [weapons, setWeapons] = useState<any[]>([]);
+  const [refineMaterials, setRefineMaterials] = useState<string[]>([]);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -40,7 +41,7 @@ const WeaponsNexus: React.FC = () => {
     qtd_atributo_vantagem: 0,
     dano_inicial: 10,
     level_maximo: 20,
-    material_refino: '',
+    material_refino: 'NENHUM / MANUAL',
     efeito_nome: '',
     efeito_descricao: '',
     historia: '',
@@ -53,8 +54,21 @@ const WeaponsNexus: React.FC = () => {
     const client = getSupabaseClient();
     setIsLoading(true);
     try {
-      const { data } = await client.from('armas').select('*').order('created_at', { ascending: false });
-      setWeapons(data || []);
+      // 1. Buscar Armas
+      const { data: weaponsData } = await client.from('armas').select('*').order('created_at', { ascending: false });
+      setWeapons(weaponsData || []);
+
+      // 2. Buscar Materiais de Refino do Inventário
+      const { data: materialsData } = await client
+        .from('inventario_nexus')
+        .select('nome')
+        .eq('categoria', 'MATERIAL DE REFINO')
+        .order('nome', { ascending: true });
+      
+      if (materialsData) {
+        setRefineMaterials(materialsData.map(m => m.nome));
+      }
+
     } catch (err) { console.error(err); }
     finally { setIsLoading(false); }
   };
@@ -243,7 +257,15 @@ const WeaponsNexus: React.FC = () => {
                           <div className="space-y-6">
                              <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest border-l-2 border-rose-500 pl-3">Matriz de Dano</h4>
                              <FormGroup label="DANO INICIAL (BASE)" type="number" value={formData.dano_inicial} onChange={(v:any) => setFormData({...formData, dano_inicial:v})} icon={<Activity size={12} className="text-rose-500"/>} />
-                             <FormGroup label="MATERIAL DE REFINO" value={formData.material_refino} onChange={(v:any) => setFormData({...formData, material_refino:v})} placeholder="Ex: Pedra de Mana Superior" icon={<Gem size={12} className="text-amber-500"/>} />
+                             
+                             <FormGroup 
+                                label="MATERIAL DE REFINO" 
+                                type="select"
+                                options={['NENHUM / MANUAL', ...refineMaterials]}
+                                value={formData.material_refino} 
+                                onChange={(v:any) => setFormData({...formData, material_refino:v})} 
+                                icon={<Gem size={12} className="text-amber-500"/>} 
+                             />
                              
                              <div className="space-y-4 pt-2">
                                 <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2"><Sparkles size={12} className="text-purple-500" /> Efeito Ativo</label>
