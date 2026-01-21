@@ -34,6 +34,7 @@ const InventoryNexus: React.FC = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   
+  // Vínculos dinâmicos via Supabase
   const [territoryOptions, setTerritoryOptions] = useState<string[]>([]);
   const [weaponOptions, setWeaponOptions] = useState<string[]>([]);
 
@@ -51,8 +52,8 @@ const InventoryNexus: React.FC = () => {
     img: '',
     buff_atributos: [] as string[],
     qtd_buff: 0,
-    tempo_buff: '10 min',
-    arsenal_vinc: '',
+    tempo_buff: 'INSTÂNCIA',
+    arsenal_vinc: 'NENHUM / GLOBAL',
     is_trial_unlock: false,
     is_real_vitality: false,
     is_return_stone: false,
@@ -66,14 +67,18 @@ const InventoryNexus: React.FC = () => {
     setIsLoading(true);
     const client = getSupabaseClient();
     try {
+      // 1. Buscar Ativos do Inventário
       const { data: invData } = await client.from('inventario_nexus').select('*').order('nome', { ascending: true });
       if (invData) setItems(invData);
 
+      // 2. Buscar Territórios Reais
       const { data: terrData } = await client.from('territorios').select('nome').order('nome', { ascending: true });
       if (terrData) setTerritoryOptions(terrData.map(t => t.nome));
 
-      const { data: weapData } = await client.from('armas').select('nome');
+      // 3. Buscar Armas do Nexus (ARSENAL) para o dropdown de vínculo
+      const { data: weapData } = await client.from('armas').select('nome').order('nome', { ascending: true });
       if (weapData) setWeaponOptions(weapData.map(w => w.nome));
+      
     } catch (err) {
       console.error("Erro Nexus Logística:", err);
     } finally {
@@ -305,16 +310,25 @@ const InventoryNexus: React.FC = () => {
                                         ))}
                                      </div>
                                   </div>
-                                  <div className="grid grid-cols-2 gap-4">
-                                     <FormGroup label="% BUFF" type="number" value={formData.qtd_buff} onChange={(v:any) => setFormData({...formData, qtd_buff:v})} icon={<Zap size={12} className="text-amber-500"/>} />
-                                     <FormGroup label="DURAÇÃO" value={formData.tempo_buff} onChange={(v:any) => setFormData({...formData, tempo_buff:v})} icon={<Timer size={12} className="text-blue-500"/>} />
+                                  <div className="grid grid-cols-1">
+                                     <FormGroup label="% BUFF (EFICÁCIA EM BATALHA)" type="number" value={formData.qtd_buff} onChange={(v:any) => setFormData({...formData, qtd_buff:v})} icon={<Zap size={12} className="text-amber-500"/>} />
                                   </div>
+                                  <p className="text-[9px] text-slate-500 font-bold uppercase italic leading-relaxed">
+                                    <Info size={10} className="inline mr-1" /> Consumíveis de Dungeon têm efeito imediato e duração limitada à instância da fenda atual.
+                                  </p>
                                </div>
                              )}
 
                              {formData.categoria === 'MATERIAL DE REFINO' && (
                                <div className="space-y-6 animate-in slide-in-from-right-4 duration-500">
-                                  <FormGroup label="ARSENAL DESIGNADO" type="select" options={['SELECIONAR ARMA...', ...weaponOptions]} value={formData.arsenal_vinc} onChange={(v:any) => setFormData({...formData, arsenal_vinc:v})} icon={<Swords size={12} className="text-rose-500"/>} />
+                                  <FormGroup 
+                                    label="ARSENAL DESIGNADO" 
+                                    type="select" 
+                                    options={['NENHUM / GLOBAL', ...weaponOptions]} 
+                                    value={formData.arsenal_vinc} 
+                                    onChange={(v:any) => setFormData({...formData, arsenal_vinc:v})} 
+                                    icon={<Swords size={12} className="text-rose-500"/>} 
+                                  />
                                   <p className="text-[9px] text-slate-500 font-bold uppercase italic leading-relaxed">
                                     Materiais de refino aumentam a eficácia de armamentos específicos em +15% por grau de pureza.
                                   </p>
