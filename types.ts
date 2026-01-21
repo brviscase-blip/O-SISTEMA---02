@@ -1,4 +1,3 @@
-
 import React from 'react';
 
 export type ViewType = 'SISTEMA' | 'TAREFAS' | 'DUNGEON' | 'TIMELINE' | 'PUNISHMENT';
@@ -10,7 +9,7 @@ export interface PlayerStats {
   intelligence: number;
   perception: number;
   vitality: number;
-  hp?: number; // Representa o bônus de itens no Dungeon HP
+  hp?: number; 
   mp?: number; 
 }
 
@@ -21,10 +20,10 @@ export interface PlayerStatus {
   rank: ItemRank;
   job: string;
   title: string;
-  hp: number;             // HP Global Atual (Vitalidade Real)
-  maxHp: number;          // HP Global Máximo (Baseado no Rank)
-  dungeon_hp: number;     // HP de Combate Atual
-  max_dungeon_hp: number; // HP de Combate Máximo (+15 por nível)
+  hp: number;
+  maxHp: number;
+  dungeon_hp: number;
+  max_dungeon_hp: number;
   mp: number;
   maxMp: number;
   gold: number;
@@ -51,6 +50,20 @@ export interface EquipmentItem {
   conjunto_id?: string;
 }
 
+export interface Weapon {
+  id: string;
+  nome: string;           // ARSENAL
+  rank: ItemRank;         // RANK
+  atributo_base: string;  // ATRIBUTO BASE
+  dano_inicial: number;   // DANO INICIAL
+  lvl_range: string;      // LEVEL RANGE
+  material_refino: string;// MATERIAL REFINO
+  efeito_passivo: string; // EFEITO PASSIVO
+  descricao_efeito: string; // DESCRIÇÃO EFEITO
+  historia: string;       // HISTÓRIA
+  img: string;            // UPLOAD VISUAL (.PNG)
+}
+
 export interface Habit {
   id: string;
   name: string;
@@ -71,7 +84,7 @@ export interface Task {
 export interface Vice {
   id: string;
   name: string;
-  penaltyHpPercent: number; // Ex: 0.20 para 20%
+  penaltyHpPercent: number;
 }
 
 export type NotificationType = 'success' | 'warning' | 'info' | 'error' | 'alert';
@@ -85,10 +98,6 @@ export interface Milestone {
   level: number;
 }
 
-/**
- * Interface de Conjunto de Armadura atualizada com campos requeridos
- * pelo sistema ArmorsNexus e gerenciamento de trials.
- */
 export interface ArmorSet {
   id: string;
   nome: string;
@@ -99,8 +108,6 @@ export interface ArmorSet {
   descricao_lore?: string;
   img?: string;
 }
-
-// --- Novas Definições para o Sistema de Demandas ---
 
 export type DemandStatus = 'OPEN' | 'IN_PROGRESS' | 'COMPLETED' | 'BLOCKED' | 'CANCELLED';
 export type Priority = 'HIGH' | 'MEDIUM' | 'LOW';
@@ -129,8 +136,6 @@ export interface DemandItem {
   order: number;
 }
 
-// --- Definições para o Sistema de Arquivos ---
-
 export type FileCategory = 'TODOS OS ATIVOS' | 'DOCUMENTOS' | 'FINANCEIROS' | 'JURÍDICOS';
 
 export interface FileItem {
@@ -140,8 +145,6 @@ export interface FileItem {
   category: FileCategory;
   size: string;
 }
-
-// --- Definições para o Dashboard e Eficiência ---
 
 export interface MemberStats {
   name: string;
@@ -155,8 +158,6 @@ export interface MemberStats {
   loadScore: number;
   lastActivity: string;
 }
-
-// --- Definições para o Sistema de Notas ---
 
 export interface Note {
   id: string;
@@ -174,8 +175,6 @@ export interface Folder {
   color: string;
 }
 
-// --- Definições para o Sistema de Quests ---
-
 export interface Quest {
   id: string;
   title: string;
@@ -185,20 +184,6 @@ export interface Quest {
   goal: number;
   reward: string;
 }
-
-// --- Definições para o Sistema de Inventário ---
-
-export interface Weapon {
-  id: string;
-  name: string;
-  rank: ItemRank;
-  type: string;
-  damage: number;
-  effect: string;
-  description: string;
-}
-
-// --- Definições para Eventos de Sistema ---
 
 export interface SystemEvent {
   id: string;

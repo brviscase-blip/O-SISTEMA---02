@@ -3,33 +3,46 @@ import React from 'react';
 import { Weapon } from '../types';
 import { Sword, Zap, Shield, Target } from 'lucide-react';
 
+// Updated MOCK_WEAPONS to match the current Weapon interface from types.ts
 const MOCK_WEAPONS: Weapon[] = [
   {
     id: 'w-01',
-    name: "Rasaka's Fang",
+    nome: "Rasaka's Fang",
     rank: 'C',
-    type: 'ADAGA',
-    damage: 25,
-    effect: 'Paralisia & Sangramento',
-    description: "Uma adaga feita do dente do Grande Veneno de Rasaka."
+    atributo_base: 'AGILIDADE',
+    dano_inicial: 25,
+    lvl_range: '1-10',
+    material_refino: 'Dente de Rasaka',
+    efeito_passivo: 'Paralisia & Sangramento',
+    descricao_efeito: "Uma adaga feita do dente do Grande Veneno de Rasaka.",
+    historia: "Derrubada no Pântano de Kasaka.",
+    img: ""
   },
   {
     id: 'w-02',
-    name: "Baruka's Dagger",
+    nome: "Baruka's Dagger",
     rank: 'A',
-    type: 'ADAGA',
-    damage: 110,
-    effect: '+30 Agilidade',
-    description: "A adaga preferida do Lorde Elfo de Gelo, Baruka."
+    atributo_base: 'AGILIDADE',
+    dano_inicial: 110,
+    lvl_range: '20-30',
+    material_refino: 'Cristal de Gelo',
+    efeito_passivo: '+30 Agilidade',
+    descricao_efeito: "A adaga preferida do Lorde Elfo de Gelo, Baruka.",
+    historia: "Conquistada após derrotar Baruka.",
+    img: ""
   },
   {
     id: 'w-03',
-    name: "Demon King's Shortsword",
+    nome: "Demon King's Shortsword",
     rank: 'S',
-    type: 'ADAGA',
-    damage: 350,
-    effect: 'Tempestade de Raios',
-    description: "Empunhada pelo Rei Demônio Baran. Possui o poder dos relâmpagos."
+    atributo_base: 'AGILIDADE',
+    dano_inicial: 350,
+    lvl_range: '50-60',
+    material_refino: 'Pedra do Rei Demônio',
+    efeito_passivo: 'Tempestade de Raios',
+    descricao_efeito: "Empunhada pelo Rei Demônio Baran. Possui o poder dos relâmpagos.",
+    historia: "Herança do Rei Demônio Baran.",
+    img: ""
   }
 ];
 
@@ -52,29 +65,34 @@ const InventoryView: React.FC = () => {
 
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-slate-900 border border-slate-800 rounded flex items-center justify-center text-slate-600 group-hover:text-purple-400 group-hover:border-purple-500/50 transition-all">
-                <Sword size={32} />
+                {weapon.img ? <img src={weapon.img} className="w-full h-full object-cover" /> : <Sword size={32} />}
               </div>
               <div>
-                <h4 className="text-sm font-black text-white uppercase tracking-tighter">{weapon.name}</h4>
-                <p className="text-[9px] font-black text-purple-500 uppercase">{weapon.type}</p>
+                {/* Fixed: Use weapon.nome instead of weapon.name */}
+                <h4 className="text-sm font-black text-white uppercase tracking-tighter">{weapon.nome}</h4>
+                {/* Fixed: Use weapon.atributo_base instead of weapon.type */}
+                <p className="text-[9px] font-black text-purple-500 uppercase">{weapon.atributo_base}</p>
               </div>
             </div>
 
-            <p className="text-[10px] text-slate-500 leading-relaxed italic">{weapon.description}</p>
+            {/* Fixed: Use weapon.descricao_efeito instead of weapon.description */}
+            <p className="text-[10px] text-slate-500 leading-relaxed italic">{weapon.descricao_efeito}</p>
 
             <div className="grid grid-cols-2 gap-2 mt-auto">
               <div className="bg-slate-900/50 p-2 rounded border border-slate-800 flex items-center gap-2">
                  <Zap size={12} className="text-blue-400" />
                  <div className="flex flex-col">
                    <span className="text-[7px] font-black text-slate-600 uppercase">DANO</span>
-                   <span className="text-xs font-black text-white">{weapon.damage}</span>
+                   {/* Fixed: Use weapon.dano_inicial instead of weapon.damage */}
+                   <span className="text-xs font-black text-white">{weapon.dano_inicial}</span>
                  </div>
               </div>
               <div className="bg-slate-900/50 p-2 rounded border border-slate-800 flex items-center gap-2">
                  <Target size={12} className="text-rose-400" />
                  <div className="flex flex-col">
                    <span className="text-[7px] font-black text-slate-600 uppercase">EFEITO</span>
-                   <span className="text-[9px] font-black text-white uppercase truncate">{weapon.effect}</span>
+                   {/* Fixed: Use weapon.efeito_passivo instead of weapon.effect */}
+                   <span className="text-[9px] font-black text-white uppercase truncate">{weapon.efeito_passivo}</span>
                  </div>
               </div>
             </div>

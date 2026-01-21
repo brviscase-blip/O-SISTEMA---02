@@ -39,7 +39,7 @@ const WeaponSlot = ({ label, weapon, icon, color }: any) => {
           ) : (
             <>
               <h4 className="text-[10px] font-black uppercase leading-[1] text-white mb-0.5 drop-shadow-md line-clamp-1">{weapon.nome}</h4>
-              <span className="text-[8px] font-black text-emerald-400 tabular-nums">{weapon.dano_base} ATK</span>
+              <span className="text-[8px] font-black text-emerald-400 tabular-nums">{weapon.dano_inicial} ATK</span>
             </>
           )}
         </div>
