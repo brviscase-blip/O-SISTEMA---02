@@ -45,7 +45,7 @@ const TerritoriesNexus: React.FC = () => {
   const initialForm = {
     nome: '', rank: 'E', consumiveis: [] as string[], reliquias: [] as string[],
     materiais: [] as string[], armaduras: [] as string[], arsenal: [] as string[],
-    inimigo_comum: '', boss: '', img: ''
+    inimigo_comum: 'NENHUM', boss: 'NENHUM', img: ''
   };
   const [formData, setFormData] = useState(initialForm);
 
@@ -62,18 +62,33 @@ const TerritoriesNexus: React.FC = () => {
 
     const fetchLinkedOptions = async () => {
       const client = getSupabaseClient();
+      
+      // Buscar Ativos do Inventário
       const { data: inv } = await client.from('inventario_nexus').select('nome, categoria');
+      
+      // Buscar Armaduras
       const { data: armors } = await client.from('armaduras').select('nome');
+      
+      // Buscar Armas
       const { data: weapons } = await client.from('armas').select('nome');
       
-      const savedEnemies = localStorage.getItem('nexus_enemies_v1');
+      // BUSCAR INIMIGOS DIRETAMENTE DO SUPABASE (Bestiário v3.0)
+      const { data: enemies } = await client
+        .from('inimigos')
+        .select('nome, tipo')
+        .order('nome', { ascending: true });
+      
       let minionsList: string[] = [];
       let bossesList: string[] = [];
       
-      if (savedEnemies) {
-        const enemies = JSON.parse(savedEnemies);
-        minionsList = enemies.filter((e: any) => e.tipo === 'INIMIGO COMUM (MINION)').map((e: any) => e.nome);
-        bossesList = enemies.filter((e: any) => e.tipo === 'BOSS DA DUNGEON').map((e: any) => e.nome);
+      if (enemies) {
+        minionsList = enemies
+          .filter((e: any) => e.tipo === 'INIMIGO COMUM (MINION)')
+          .map((e: any) => e.nome);
+        
+        bossesList = enemies
+          .filter((e: any) => e.tipo === 'BOSS DA DUNGEON')
+          .map((e: any) => e.nome);
       }
 
       setOptions({
@@ -215,9 +230,12 @@ const TerritoriesNexus: React.FC = () => {
                       <h4 className="text-2xl font-black text-white uppercase italic tracking-tighter leading-none group-hover:text-blue-400 transition-colors drop-shadow-lg">
                         {t.nome}
                       </h4>
-                      <div className="flex items-center gap-3 mt-3">
+                      <div className="flex flex-col gap-1 mt-3">
                          <div className="flex items-center gap-1.5 text-[9px] font-black text-rose-500 uppercase tracking-widest">
-                            <Skull size={10} /> {t.boss || 'Sem Boss'}
+                            <Skull size={10} /> BOSS: {t.boss || 'SEM BOSS'}
+                         </div>
+                         <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-400 uppercase tracking-widest">
+                            <Ghost size={10} className="text-blue-400" /> MINION: {t.inimigo_comum || 'NENHUM'}
                          </div>
                       </div>
                    </div>
@@ -268,23 +286,24 @@ const TerritoriesNexus: React.FC = () => {
                           <LinkedMultiSelect label="ARMADURAS" icon={<Shield size={12}/>} options={options.armors} selected={formData.armaduras} onChange={(val: string[]) => setFormData({...formData, armaduras: val})} />
                           <LinkedMultiSelect label="ARSENAL" icon={<Sword size={12}/>} options={options.weapons} selected={formData.arsenal} onChange={(val: string[]) => setFormData({...formData, arsenal: val})} />
                           
-                          {/* Campos de Inimigos Vinculados */}
-                          <FormGroup 
-                            label="INIMIGO COMUM" 
-                            type="select"
-                            options={['NENHUM', ...options.minions]}
-                            value={formData.inimigo_comum} 
-                            onChange={(v:any) => setFormData({...formData, inimigo_comum: v})} 
-                            icon={<Ghost size={12}/>} 
-                          />
-                          <FormGroup 
-                            label="BOSS DA REGIAO" 
-                            type="select"
-                            options={['NENHUM', ...options.bosses]}
-                            value={formData.boss} 
-                            onChange={(v:any) => setFormData({...formData, boss: v})} 
-                            icon={<Skull size={12}/>} 
-                          />
+                          <div className="space-y-6">
+                             <FormGroup 
+                               label="INIMIGO COMUM" 
+                               type="select"
+                               options={['NENHUM', ...options.minions]}
+                               value={formData.inimigo_comum} 
+                               onChange={(v:any) => setFormData({...formData, inimigo_comum: v})} 
+                               icon={<Ghost size={12} className="text-blue-400"/>} 
+                             />
+                             <FormGroup 
+                               label="BOSS DA REGIAO" 
+                               type="select"
+                               options={['NENHUM', ...options.bosses]}
+                               value={formData.boss} 
+                               onChange={(v:any) => setFormData({...formData, boss: v})} 
+                               icon={<Skull size={12} className="text-rose-500"/>} 
+                             />
+                          </div>
                        </div>
                     </div>
                  </div>
