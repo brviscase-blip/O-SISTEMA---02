@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { Weapon } from '../types';
 import { Sword, Zap, Shield, Target } from 'lucide-react';
@@ -9,12 +8,15 @@ const MOCK_WEAPONS: Weapon[] = [
     id: 'w-01',
     nome: "Rasaka's Fang",
     rank: 'C',
-    atributo_base: 'AGILIDADE',
+    // FIX: Changed atributo_base to atributo_vantagem and added required level_maximo/qtd_atributo_vantagem
+    atributo_vantagem: 'AGILIDADE',
+    qtd_atributo_vantagem: 10,
     dano_inicial: 25,
-    lvl_range: '1-10',
+    level_maximo: 20,
     material_refino: 'Dente de Rasaka',
-    efeito_passivo: 'Paralisia & Sangramento',
-    descricao_efeito: "Uma adaga feita do dente do Grande Veneno de Rasaka.",
+    // FIX: Changed efeito_passivo and descricao_efeito to efeito_nome and efeito_descricao
+    efeito_nome: 'Paralisia & Sangramento',
+    efeito_descricao: "Uma adaga feita do dente do Grande Veneno de Rasaka.",
     historia: "Derrubada no Pântano de Kasaka.",
     img: ""
   },
@@ -22,12 +24,15 @@ const MOCK_WEAPONS: Weapon[] = [
     id: 'w-02',
     nome: "Baruka's Dagger",
     rank: 'A',
-    atributo_base: 'AGILIDADE',
+    // FIX: Changed atributo_base to atributo_vantagem and added required level_maximo/qtd_atributo_vantagem
+    atributo_vantagem: 'AGILIDADE',
+    qtd_atributo_vantagem: 30,
     dano_inicial: 110,
-    lvl_range: '20-30',
+    level_maximo: 40,
     material_refino: 'Cristal de Gelo',
-    efeito_passivo: '+30 Agilidade',
-    descricao_efeito: "A adaga preferida do Lorde Elfo de Gelo, Baruka.",
+    // FIX: Changed efeito_passivo and descricao_efeito to efeito_nome and efeito_descricao
+    efeito_nome: '+30 Agilidade',
+    efeito_descricao: "A adaga preferida do Lorde Elfo de Gelo, Baruka.",
     historia: "Conquistada após derrotar Baruka.",
     img: ""
   },
@@ -35,12 +40,15 @@ const MOCK_WEAPONS: Weapon[] = [
     id: 'w-03',
     nome: "Demon King's Shortsword",
     rank: 'S',
-    atributo_base: 'AGILIDADE',
+    // FIX: Changed atributo_base to atributo_vantagem and added required level_maximo/qtd_atributo_vantagem
+    atributo_vantagem: 'AGILIDADE',
+    qtd_atributo_vantagem: 50,
     dano_inicial: 350,
-    lvl_range: '50-60',
+    level_maximo: 80,
     material_refino: 'Pedra do Rei Demônio',
-    efeito_passivo: 'Tempestade de Raios',
-    descricao_efeito: "Empunhada pelo Rei Demônio Baran. Possui o poder dos relâmpagos.",
+    // FIX: Changed efeito_passivo and descricao_efeito to efeito_nome and efeito_descricao
+    efeito_nome: 'Tempestade de Raios',
+    efeito_descricao: "Empunhada pelo Rei Demônio Baran. Possui o poder dos relâmpagos.",
     historia: "Herança do Rei Demônio Baran.",
     img: ""
   }
@@ -70,13 +78,13 @@ const InventoryView: React.FC = () => {
               <div>
                 {/* Fixed: Use weapon.nome instead of weapon.name */}
                 <h4 className="text-sm font-black text-white uppercase tracking-tighter">{weapon.nome}</h4>
-                {/* Fixed: Use weapon.atributo_base instead of weapon.type */}
-                <p className="text-[9px] font-black text-purple-500 uppercase">{weapon.atributo_base}</p>
+                {/* FIX: Changed weapon.atributo_base to weapon.atributo_vantagem */}
+                <p className="text-[9px] font-black text-purple-500 uppercase">{weapon.atributo_vantagem}</p>
               </div>
             </div>
 
-            {/* Fixed: Use weapon.descricao_efeito instead of weapon.description */}
-            <p className="text-[10px] text-slate-500 leading-relaxed italic">{weapon.descricao_efeito}</p>
+            {/* FIX: Changed weapon.descricao_efeito to weapon.efeito_descricao */}
+            <p className="text-[10px] text-slate-500 leading-relaxed italic">{weapon.efeito_descricao}</p>
 
             <div className="grid grid-cols-2 gap-2 mt-auto">
               <div className="bg-slate-900/50 p-2 rounded border border-slate-800 flex items-center gap-2">
@@ -91,8 +99,8 @@ const InventoryView: React.FC = () => {
                  <Target size={12} className="text-rose-400" />
                  <div className="flex flex-col">
                    <span className="text-[7px] font-black text-slate-600 uppercase">EFEITO</span>
-                   {/* Fixed: Use weapon.efeito_passivo instead of weapon.effect */}
-                   <span className="text-[9px] font-black text-white uppercase truncate">{weapon.efeito_passivo}</span>
+                   {/* FIX: Changed weapon.efeito_passivo to weapon.efeito_nome */}
+                   <span className="text-[9px] font-black text-white uppercase truncate">{weapon.efeito_nome}</span>
                  </div>
               </div>
             </div>

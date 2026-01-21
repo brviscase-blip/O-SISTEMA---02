@@ -1,19 +1,23 @@
 
 import React, { useState } from 'react';
 import { 
-  Lock, Database, Sword, X, Shield, Box, Crown, Package, MapPin, User
+  Lock, Database, Sword, X, Shield, Box, Crown, Package, MapPin, User, Skull, Radar, 
+  Trash2, AlertTriangle, ShieldAlert, RefreshCcw, Loader2
 } from 'lucide-react';
 import WeaponsNexus from './WeaponsNexus';
 import ArmorsNexus from './ArmorsNexus';
 import InventoryNexus from './InventoryNexus';
 import TerritoriesNexus from './TerritoriesNexus';
 import PlayerNexus from './PlayerNexus';
+import EnemiesNexus from './EnemiesNexus';
+import ArenasNexus from './ArenasNexus';
+import { getSupabaseClient } from '../supabaseClient';
 
 interface Props {
   onClose: () => void;
 }
 
-type AdminModule = 'PLAYER' | 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'TERRITORIO' | 'ACESSORIO';
+type AdminModule = 'PLAYER' | 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'TERRITORIO' | 'INIMIGOS' | 'ARENAS' | 'ACESSORIO' | 'MANUTENCAO';
 
 const AdminSettings: React.FC<Props> = ({ onClose }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -21,6 +25,7 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
   const [login, setLogin] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [isPurging, setIsPurging] = useState(false);
 
   const handleLogin = (e: React.FormEvent) => {
     e.preventDefault();
@@ -29,6 +34,34 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
       setError('');
     } else {
       setError('ACESSO NEGADO: DNA NÃO RECONHECIDO.');
+    }
+  };
+
+  const purgeTable = async (table: string) => {
+    const confirmMsg = table === 'armas' 
+      ? "EXPURGAR TODOS OS REGISTROS DO ARSENAL NO SUPABASE?" 
+      : "COLAPSAR TODOS OS DADOS TERRITORIAIS (LOCAL)?";
+    
+    if (!confirm(confirmMsg)) return;
+    if (!confirm("ESTA AÇÃO É IRREVERSÍVEL. CONFIRMAR DELETAR TUDO?")) return;
+
+    setIsPurging(true);
+    try {
+      if (table === 'armas') {
+        const client = getSupabaseClient();
+        // No Supabase, para deletar tudo sem filtro id, usamos um filtro que pegue todos
+        const { error } = await client.from('armas').delete().neq('id', '00000000-0000-0000-0000-000000000000');
+        if (error) throw error;
+        alert("ARSENAL SUPABASE ZERADO COM SUCESSO.");
+      } else if (table === 'territorios') {
+        localStorage.removeItem('nexus_territories_v2');
+        alert("BASE TERRITORIAL LOCAL LIMPA.");
+      }
+    } catch (err) {
+      alert("FALHA NO PROTOCOLO DE EXPURGO.");
+      console.error(err);
+    } finally {
+      setIsPurging(false);
     }
   };
 
@@ -74,13 +107,18 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
 
       <div className="flex-1 flex overflow-hidden">
         <aside className="w-64 bg-[#020617] border-r border-slate-800 flex flex-col flex-shrink-0 shadow-2xl z-10">
-          <nav className="flex-1 p-3 space-y-1">
+          <nav className="flex-1 p-3 space-y-1 custom-scrollbar overflow-y-auto">
             <AdminNavItem icon={<User size={18}/>} label="PLAYER" active={activeModule === 'PLAYER'} onClick={() => setActiveModule('PLAYER')} />
             <AdminNavItem icon={<Sword size={18}/>} label="ARSENAL" active={activeModule === 'ARMAS'} onClick={() => setActiveModule('ARMAS')} />
             <AdminNavItem icon={<Shield size={18}/>} label="ARMADURAS" active={activeModule === 'ARMADURAS'} onClick={() => setActiveModule('ARMADURAS')} />
             <AdminNavItem icon={<Package size={18}/>} label="INVENTÁRIO" active={activeModule === 'INVENTARIO'} onClick={() => setActiveModule('INVENTARIO')} />
             <AdminNavItem icon={<MapPin size={18}/>} label="TERRITÓRIOS" active={activeModule === 'TERRITORIO'} onClick={() => setActiveModule('TERRITORIO')} />
+            <AdminNavItem icon={<Radar size={18}/>} label="ARENAS" active={activeModule === 'ARENAS'} onClick={() => setActiveModule('ARENAS')} />
+            <AdminNavItem icon={<Skull size={18}/>} label="INIMIGOS" active={activeModule === 'INIMIGOS'} onClick={() => setActiveModule('INIMIGOS')} />
             <AdminNavItem icon={<Crown size={18}/>} label="ACESSÓRIOS" active={activeModule === 'ACESSORIO'} onClick={() => setActiveModule('ACESSORIO')} isLocked />
+            <div className="pt-4 mt-4 border-t border-slate-800">
+               <AdminNavItem icon={<ShieldAlert size={18}/>} label="MANUTENÇÃO" active={activeModule === 'MANUTENCAO'} onClick={() => setActiveModule('MANUTENCAO')} />
+            </div>
           </nav>
         </aside>
 
@@ -90,6 +128,66 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
           {activeModule === 'ARMADURAS' && <ArmorsNexus />}
           {activeModule === 'INVENTARIO' && <InventoryNexus />}
           {activeModule === 'TERRITORIO' && <TerritoriesNexus />}
+          {activeModule === 'ARENAS' && <ArenasNexus />}
+          {activeModule === 'INIMIGOS' && <EnemiesNexus />}
+          {activeModule === 'MANUTENCAO' && (
+            <div className="p-12 max-w-4xl mx-auto space-y-12 animate-in fade-in slide-in-from-bottom-4 duration-500">
+               <div className="flex items-center gap-4 border-b border-rose-900/30 pb-6">
+                  <div className="w-12 h-12 bg-rose-600/10 border border-rose-500/40 rounded flex items-center justify-center text-rose-500">
+                     <AlertTriangle size={24} />
+                  </div>
+                  <div>
+                    <h2 className="text-3xl font-black text-white italic uppercase tracking-tighter">Manutenção do Sistema</h2>
+                    <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.4em] mt-1">Protocolos de Limpeza e Reset Global</p>
+                  </div>
+               </div>
+
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Reset Arsenal */}
+                  <div className="bg-[#030712] border border-rose-900/20 p-8 rounded-sm space-y-6 group hover:border-rose-600 transition-all">
+                     <div className="flex items-center justify-between">
+                        <Sword size={32} className="text-rose-500" />
+                        <span className="text-[9px] font-black text-rose-900 uppercase tracking-widest">Tabela: armas</span>
+                     </div>
+                     <h3 className="text-lg font-black text-white uppercase italic">Expurgar Arsenal</h3>
+                     <p className="text-xs text-slate-500 leading-relaxed font-medium">Deleta permanentemente todos os registros de armamentos da base de dados do <span className="text-rose-500">Supabase</span>.</p>
+                     <button 
+                       onClick={() => purgeTable('armas')}
+                       disabled={isPurging}
+                       className="w-full py-4 bg-rose-600/10 border border-rose-600/40 text-rose-500 text-[10px] font-black uppercase tracking-widest hover:bg-rose-600 hover:text-white transition-all flex items-center justify-center gap-3 active:scale-95"
+                     >
+                       {isPurging ? <Loader2 size={16} className="animate-spin" /> : <Trash2 size={16} />}
+                       INICIAR EXPURGO BÉLICO
+                     </button>
+                  </div>
+
+                  {/* Reset Territórios */}
+                  <div className="bg-[#030712] border border-blue-900/20 p-8 rounded-sm space-y-6 group hover:border-blue-600 transition-all">
+                     <div className="flex items-center justify-between">
+                        <MapPin size={32} className="text-blue-500" />
+                        <span className="text-[9px] font-black text-blue-900 uppercase tracking-widest">Local: territorios</span>
+                     </div>
+                     <h3 className="text-lg font-black text-white uppercase italic">Reset Territorial</h3>
+                     <p className="text-xs text-slate-500 leading-relaxed font-medium">Limpa todos os mapas e setores registrados no <span className="text-blue-500">LocalStorage</span> deste navegador.</p>
+                     <button 
+                       onClick={() => purgeTable('territorios')}
+                       disabled={isPurging}
+                       className="w-full py-4 bg-blue-600/10 border border-blue-600/40 text-blue-500 text-[10px] font-black uppercase tracking-widest hover:bg-blue-600 hover:text-white transition-all flex items-center justify-center gap-3 active:scale-95"
+                     >
+                        {isPurging ? <Loader2 size={16} className="animate-spin" /> : <RefreshCcw size={16} />}
+                        COLAPSAR FENDAS
+                     </button>
+                  </div>
+               </div>
+
+               <div className="bg-rose-950/10 border border-rose-900/30 p-6 rounded-sm flex items-center gap-6">
+                  <ShieldAlert size={32} className="text-rose-600 shrink-0" />
+                  <p className="text-[10px] text-slate-400 font-bold uppercase italic leading-relaxed">
+                    Atenção: Ações de manutenção ignoram backups automáticos. Certifique-se de que os dados foram exportados via <span className="text-white">XLSX</span> no nexo de armaduras caso queira preservá-los.
+                  </p>
+               </div>
+            </div>
+          )}
           {(activeModule === 'ACESSORIO') && (
              <div className="flex-1 flex items-center justify-center py-40">
                 <div className="text-center opacity-20">

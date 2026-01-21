@@ -1,7 +1,9 @@
+
 import React from 'react';
 
 export type ViewType = 'SISTEMA' | 'TAREFAS' | 'DUNGEON' | 'TIMELINE' | 'PUNISHMENT';
 export type ItemRank = 'E' | 'D' | 'C' | 'B' | 'A' | 'S';
+export type ArenaType = 'DUNGEON AZUL' | 'DUNGEON VERMELHO' | 'MASMORRA DE TRIAL';
 
 export interface PlayerStats {
   strength: number;
@@ -38,6 +40,19 @@ export interface PlayerStatus {
   criticalFailureCount: number;
 }
 
+export interface Arena {
+  id: string;
+  nome: string;
+  rank: ItemRank;
+  tipo: ArenaType;
+  atributo_req: string;
+  valor_atributo_req: number;
+  level_req: number;
+  drops: string[];
+  descricao: string;
+  img: string;
+}
+
 export interface EquipmentItem {
   id: string;
   nome: string; 
@@ -52,16 +67,17 @@ export interface EquipmentItem {
 
 export interface Weapon {
   id: string;
-  nome: string;           // ARSENAL
-  rank: ItemRank;         // RANK
-  atributo_base: string;  // ATRIBUTO BASE
-  dano_inicial: number;   // DANO INICIAL
-  lvl_range: string;      // LEVEL RANGE
-  material_refino: string;// MATERIAL REFINO
-  efeito_passivo: string; // EFEITO PASSIVO
-  descricao_efeito: string; // DESCRIÇÃO EFEITO
-  historia: string;       // HISTÓRIA
-  img: string;            // UPLOAD VISUAL (.PNG)
+  nome: string;
+  rank: ItemRank;
+  atributo_vantagem: string;
+  qtd_atributo_vantagem: number;
+  dano_inicial: number;
+  level_maximo: number;
+  material_refino: string;
+  efeito_nome: string;
+  efeito_descricao: string;
+  historia: string;
+  img: string;
 }
 
 export interface Habit {
