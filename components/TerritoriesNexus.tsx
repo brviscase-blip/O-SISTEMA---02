@@ -1,5 +1,5 @@
 
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   MapPinned, Plus, Edit3, Trash2, X, Save, 
   Search, Database, Mountain, Skull, Eye, 
@@ -13,11 +13,11 @@ const RANKS = ['S', 'A', 'B', 'C', 'D', 'E'];
 
 const getRankTheme = (rank: string) => {
   switch (rank) {
-    case 'S': return { text: 'text-rose-500', border: 'border-rose-500/40', bg: 'bg-rose-500/10', glow: 'shadow-rose-500/20' };
-    case 'A': return { text: 'text-amber-500', border: 'border-amber-500/40', bg: 'bg-amber-500/10', glow: 'shadow-amber-500/20' };
-    case 'B': return { text: 'text-purple-500', border: 'border-purple-500/40', bg: 'bg-purple-500/10', glow: 'shadow-purple-500/20' };
-    case 'C': return { text: 'text-blue-500', border: 'border-blue-500/40', bg: 'bg-blue-500/10', glow: 'shadow-blue-500/20' };
-    case 'D': return { text: 'text-emerald-500', border: 'border-emerald-500/40', bg: 'bg-emerald-500/10', glow: 'shadow-emerald-500/20' };
+    case 'S': return { text: 'text-rose-500', border: 'border-rose-500/40', bg: 'bg-rose-500/10', glow: 'shadow-rose-500/30' };
+    case 'A': return { text: 'text-amber-500', border: 'border-amber-500/40', bg: 'bg-amber-500/10', glow: 'shadow-amber-500/30' };
+    case 'B': return { text: 'text-purple-500', border: 'border-purple-500/40', bg: 'bg-purple-500/10', glow: 'shadow-purple-500/30' };
+    case 'C': return { text: 'text-blue-500', border: 'border-blue-500/40', bg: 'bg-blue-500/10', glow: 'shadow-blue-500/30' };
+    case 'D': return { text: 'text-emerald-500', border: 'border-emerald-500/40', bg: 'bg-emerald-500/10', glow: 'shadow-emerald-500/30' };
     default: return { text: 'text-slate-400', border: 'border-slate-800', bg: 'bg-slate-900/40', glow: '' };
   }
 };
@@ -34,7 +34,9 @@ const TerritoriesNexus: React.FC = () => {
     relics: [] as string[],
     materials: [] as string[],
     armors: [] as string[],
-    weapons: [] as string[]
+    weapons: [] as string[],
+    minions: [] as string[],
+    bosses: [] as string[]
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -45,7 +47,7 @@ const TerritoriesNexus: React.FC = () => {
   };
   const [formData, setFormData] = useState(initialForm);
 
-  // 1. Carregar dados locais e buscar opções vinculadas do Supabase
+  // 1. Carregar dados locais e buscar opções vinculadas do Supabase/LocalStorage
   useEffect(() => {
     // Carregar territórios do LocalStorage
     const saved = localStorage.getItem('nexus_territories_v2');
@@ -55,28 +57,44 @@ const TerritoriesNexus: React.FC = () => {
     const fetchLinkedOptions = async () => {
       const client = getSupabaseClient();
       
-      // Busca Inventário
+      // Busca Inventário (Supabase)
       const { data: inv } = await client.from('inventario_nexus').select('nome, categoria');
-      if (inv) {
-        setOptions(prev => ({
-          ...prev,
-          consumables: inv.filter(i => i.categoria === 'CONSUMÍVEL').map(i => i.nome),
-          relics: inv.filter(i => i.categoria === 'RELÍQUIA').map(i => i.nome),
-          materials: inv.filter(i => i.categoria === 'MATERIAL DE REFINO').map(i => i.nome)
-        }));
+      const consumables = inv?.filter(i => i.categoria === 'CONSUMÍVEL').map(i => i.nome) || [];
+      const relics = inv?.filter(i => i.categoria === 'RELÍQUIA').map(i => i.nome) || [];
+      const materials = inv?.filter(i => i.categoria === 'MATERIAL DE REFINO').map(i => i.nome) || [];
+
+      // Busca Armaduras (Supabase)
+      const { data: armors } = await client.from('armaduras').select('nome');
+      const armorsList = armors?.map(a => a.nome) || [];
+
+      // Busca Arsenal (Supabase)
+      const { data: weapons } = await client.from('armas').select('nome');
+      const weaponsList = weapons?.map(w => w.nome) || [];
+
+      // Busca Inimigos (LocalStorage)
+      const savedEnemies = localStorage.getItem('nexus_enemies_v1');
+      let minionsList: string[] = [];
+      let bossesList: string[] = [];
+      
+      if (savedEnemies) {
+        const enemies = JSON.parse(savedEnemies);
+        minionsList = enemies.filter((e: any) => e.tipo === 'INIMIGO COMUM (MINION)').map((e: any) => e.nome);
+        bossesList = enemies.filter((e: any) => e.tipo === 'BOSS DA DUNGEON').map((e: any) => e.nome);
       }
 
-      // Busca Armaduras
-      const { data: armors } = await client.from('armaduras').select('nome');
-      if (armors) setOptions(prev => ({ ...prev, armors: armors.map(a => a.nome) }));
-
-      // Busca Arsenal
-      const { data: weapons } = await client.from('armas').select('nome');
-      if (weapons) setOptions(prev => ({ ...prev, weapons: weapons.map(w => w.nome) }));
+      setOptions({
+        consumables,
+        relics,
+        materials,
+        armors: armorsList,
+        weapons: weaponsList,
+        minions: minionsList,
+        bosses: bossesList
+      });
     };
 
     fetchLinkedOptions();
-  }, []);
+  }, [isModalOpen]); // Atualiza ao abrir o modal para garantir dados novos
 
   // 2. Salvar localmente
   useEffect(() => {
@@ -243,13 +261,29 @@ const TerritoriesNexus: React.FC = () => {
                     {/* Espólios & Ameaças */}
                     <div className="lg:col-span-8 space-y-8">
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <LinkedMultiSelect label="CONSUMÍVEIS" icon={<FlaskConical size={12}/>} options={options.consumables} selected={formData.consumiveis} onChange={(val) => setFormData({...formData, consumiveis: val})} />
-                          <LinkedMultiSelect label="RELÍQUIAS" icon={<Crown size={12}/>} options={options.relics} selected={formData.reliquias} onChange={(val) => setFormData({...formData, reliquias: val})} />
-                          <LinkedMultiSelect label="MATERIAL DE REFINO" icon={<Gem size={12}/>} options={options.materials} selected={formData.materiais} onChange={(val) => setFormData({...formData, materiais: val})} />
-                          <LinkedMultiSelect label="ARMADURAS" icon={<Shield size={12}/>} options={options.armors} selected={formData.armaduras} onChange={(val) => setFormData({...formData, armaduras: val})} />
-                          <LinkedMultiSelect label="ARSENAL" icon={<Sword size={12}/>} options={options.weapons} selected={formData.arsenal} onChange={(val) => setFormData({...formData, arsenal: val})} />
-                          <FormGroup label="INIMIGO COMUM" value={formData.inimigo_comum} onChange={(v:any) => setFormData({...formData, inimigo_comum: v})} icon={<Ghost size={12}/>} />
-                          <FormGroup label="BOSS DA REGIAO" value={formData.boss} onChange={(v:any) => setFormData({...formData, boss: v})} icon={<Skull size={12}/>} />
+                          <LinkedMultiSelect label="CONSUMÍVEIS" icon={<FlaskConical size={12}/>} options={options.consumables} selected={formData.consumiveis} onChange={(val: string[]) => setFormData({...formData, consumiveis: val})} />
+                          <LinkedMultiSelect label="RELÍQUIAS" icon={<Crown size={12}/>} options={options.relics} selected={formData.reliquias} onChange={(val: string[]) => setFormData({...formData, reliquias: val})} />
+                          <LinkedMultiSelect label="MATERIAL DE REFINO" icon={<Gem size={12}/>} options={options.materials} selected={formData.materiais} onChange={(val: string[]) => setFormData({...formData, materiais: val})} />
+                          <LinkedMultiSelect label="ARMADURAS" icon={<Shield size={12}/>} options={options.armors} selected={formData.armaduras} onChange={(val: string[]) => setFormData({...formData, armaduras: val})} />
+                          <LinkedMultiSelect label="ARSENAL" icon={<Sword size={12}/>} options={options.weapons} selected={formData.arsenal} onChange={(val: string[]) => setFormData({...formData, arsenal: val})} />
+                          
+                          {/* Campos de Inimigos Vinculados */}
+                          <FormGroup 
+                            label="INIMIGO COMUM" 
+                            type="select"
+                            options={['NENHUM', ...options.minions]}
+                            value={formData.inimigo_comum} 
+                            onChange={(v:any) => setFormData({...formData, inimigo_comum: v})} 
+                            icon={<Ghost size={12}/>} 
+                          />
+                          <FormGroup 
+                            label="BOSS DA REGIAO" 
+                            type="select"
+                            options={['NENHUM', ...options.bosses]}
+                            value={formData.boss} 
+                            onChange={(v:any) => setFormData({...formData, boss: v})} 
+                            icon={<Skull size={12}/>} 
+                          />
                        </div>
                     </div>
                  </div>

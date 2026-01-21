@@ -15,7 +15,7 @@ interface Props {
   onClose: () => void;
 }
 
-type AdminModule = 'PLAYER' | 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'TERRITORIO' | 'INIMIGOS' | 'ARENAS' | 'ACESSORIO';
+type AdminModule = 'PLAYER' | 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'TERRITORIO' | 'INIMIGOS' | 'ARENAS';
 
 const AdminSettings: React.FC<Props> = ({ onClose }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -84,7 +84,6 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
             <AdminNavItem icon={<MapPin size={18}/>} label="TERRITÓRIOS" active={activeModule === 'TERRITORIO'} onClick={() => setActiveModule('TERRITORIO')} />
             <AdminNavItem icon={<Radar size={18}/>} label="ARENAS" active={activeModule === 'ARENAS'} onClick={() => setActiveModule('ARENAS')} />
             <AdminNavItem icon={<Skull size={18}/>} label="INIMIGOS" active={activeModule === 'INIMIGOS'} onClick={() => setActiveModule('INIMIGOS')} />
-            <AdminNavItem icon={<Crown size={18}/>} label="ACESSÓRIOS" active={activeModule === 'ACESSORIO'} onClick={() => setActiveModule('ACESSORIO')} isLocked />
           </nav>
         </aside>
 
@@ -96,14 +95,6 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
           {activeModule === 'TERRITORIO' && <TerritoriesNexus />}
           {activeModule === 'ARENAS' && <ArenasNexus />}
           {activeModule === 'INIMIGOS' && <EnemiesNexus />}
-          {(activeModule === 'ACESSORIO') && (
-             <div className="flex-1 flex items-center justify-center py-40">
-                <div className="text-center opacity-20">
-                   <Lock size={64} className="mx-auto mb-4" />
-                   <h3 className="text-lg font-black uppercase tracking-[0.5em]">Módulo Criptografado</h3>
-                </div>
-             </div>
-          )}
         </main>
       </div>
     </div>
