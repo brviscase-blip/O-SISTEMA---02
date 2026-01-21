@@ -27,6 +27,8 @@ const TerritoriesNexus: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
   
   // Opções vinculadas de outros Nexos
   const [options, setOptions] = useState({
@@ -47,31 +49,23 @@ const TerritoriesNexus: React.FC = () => {
   };
   const [formData, setFormData] = useState(initialForm);
 
-  // 1. Carregar dados locais e buscar opções vinculadas do Supabase/LocalStorage
-  useEffect(() => {
-    // Carregar territórios do LocalStorage
-    const saved = localStorage.getItem('nexus_territories_v2');
-    if (saved) setTerritories(JSON.parse(saved));
+  const fetchTerritories = async () => {
+    const client = getSupabaseClient();
+    setIsLoading(true);
+    const { data } = await client.from('territorios').select('*').order('nome', { ascending: true });
+    if (data) setTerritories(data);
+    setIsLoading(false);
+  };
 
-    // Buscar dados para os selects vinculados
+  useEffect(() => {
+    fetchTerritories();
+
     const fetchLinkedOptions = async () => {
       const client = getSupabaseClient();
-      
-      // Busca Inventário (Supabase)
       const { data: inv } = await client.from('inventario_nexus').select('nome, categoria');
-      const consumables = inv?.filter(i => i.categoria === 'CONSUMÍVEL').map(i => i.nome) || [];
-      const relics = inv?.filter(i => i.categoria === 'RELÍQUIA').map(i => i.nome) || [];
-      const materials = inv?.filter(i => i.categoria === 'MATERIAL DE REFINO').map(i => i.nome) || [];
-
-      // Busca Armaduras (Supabase)
       const { data: armors } = await client.from('armaduras').select('nome');
-      const armorsList = armors?.map(a => a.nome) || [];
-
-      // Busca Arsenal (Supabase)
       const { data: weapons } = await client.from('armas').select('nome');
-      const weaponsList = weapons?.map(w => w.nome) || [];
-
-      // Busca Inimigos (LocalStorage)
+      
       const savedEnemies = localStorage.getItem('nexus_enemies_v1');
       let minionsList: string[] = [];
       let bossesList: string[] = [];
@@ -83,37 +77,40 @@ const TerritoriesNexus: React.FC = () => {
       }
 
       setOptions({
-        consumables,
-        relics,
-        materials,
-        armors: armorsList,
-        weapons: weaponsList,
+        consumables: inv?.filter(i => i.categoria === 'CONSUMÍVEL').map(i => i.nome) || [],
+        relics: inv?.filter(i => i.categoria === 'RELÍQUIA').map(i => i.nome) || [],
+        materials: inv?.filter(i => i.categoria === 'MATERIAL DE REFINO').map(i => i.nome) || [],
+        armors: armors?.map(a => a.nome) || [],
+        weapons: weapons?.map(w => w.nome) || [],
         minions: minionsList,
         bosses: bossesList
       });
     };
 
     fetchLinkedOptions();
-  }, [isModalOpen]); // Atualiza ao abrir o modal para garantir dados novos
+  }, []);
 
-  // 2. Salvar localmente
-  useEffect(() => {
-    localStorage.setItem('nexus_territories_v2', JSON.stringify(territories));
-  }, [territories]);
-
-  const handleSave = (e: React.FormEvent) => {
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nome.trim()) return;
+    setIsSaving(true);
 
-    if (editingId) {
-      setTerritories(prev => prev.map(t => t.id === editingId ? { ...formData, id: t.id } : t));
-    } else {
-      setTerritories(prev => [...prev, { ...formData, id: Date.now().toString() }]);
+    const client = getSupabaseClient();
+    try {
+      if (editingId) {
+        await client.from('territorios').update(formData).eq('id', editingId);
+      } else {
+        await client.from('territorios').insert([formData]);
+      }
+      setIsModalOpen(false);
+      setEditingId(null);
+      setFormData(initialForm);
+      fetchTerritories();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
     }
-
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData(initialForm);
   };
 
   const startEdit = (t: any) => {
@@ -122,9 +119,11 @@ const TerritoriesNexus: React.FC = () => {
     setIsModalOpen(true);
   };
 
-  const deleteTerritory = (id: string) => {
+  const deleteTerritory = async (id: string) => {
     if (confirm("EXPURGAR REGISTRO DE TERRITÓRIO?")) {
-      setTerritories(prev => prev.filter(t => t.id !== id));
+      const client = getSupabaseClient();
+      await client.from('territorios').delete().eq('id', id);
+      fetchTerritories();
     }
   };
 
@@ -183,7 +182,9 @@ const TerritoriesNexus: React.FC = () => {
             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest group-hover:text-white">Registrar Nova Fenda</span>
          </button>
 
-         {filteredTerritories.map(t => {
+         {isLoading ? (
+           <div className="col-span-full py-20 flex justify-center opacity-30"><Loader2 className="animate-spin text-blue-500" size={48}/></div>
+         ) : filteredTerritories.map(t => {
            const theme = getRankTheme(t.rank);
            return (
              <div 
@@ -290,8 +291,8 @@ const TerritoriesNexus: React.FC = () => {
 
                  <div className="mt-12 pt-8 border-t border-slate-800 flex justify-end gap-4">
                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase hover:text-white transition-all">Cancelar</button>
-                    <button type="submit" className="px-16 py-4 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black uppercase tracking-widest rounded-sm shadow-xl active:scale-95 flex items-center gap-3">
-                       <Save size={18} /> {editingId ? 'ATUALIZAR' : 'REGISTRAR'}
+                    <button type="submit" disabled={isSaving} className="px-16 py-4 bg-blue-600 hover:bg-blue-500 text-white text-[11px] font-black uppercase tracking-widest rounded-sm shadow-xl active:scale-95 flex items-center gap-3">
+                       {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} {editingId ? 'ATUALIZAR' : 'REGISTRAR'}
                     </button>
                  </div>
               </form>
