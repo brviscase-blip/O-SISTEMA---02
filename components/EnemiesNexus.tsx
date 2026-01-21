@@ -4,8 +4,9 @@ import {
   Skull, Plus, Edit3, Trash2, X, Save, 
   Search, Database, Heart, Sword, Shield, 
   Zap, MapPin, Ghost, Target, ImagePlus, 
-  ChevronDown, Flame, ShieldAlert, Info
+  ChevronDown, Flame, ShieldAlert, Info, Loader2
 } from 'lucide-react';
+import { getSupabaseClient } from '../supabaseClient';
 
 const RANKS = ['S', 'A', 'B', 'C', 'D', 'E'];
 const ENEMY_TYPES = ['INIMIGO COMUM (MINION)', 'BOSS DA DUNGEON'];
@@ -26,8 +27,9 @@ const EnemiesNexus: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+  const [isFetchingOptions, setIsFetchingOptions] = useState(false);
   
-  // Vínculos
+  // Vínculos dinâmicos com Supabase
   const [territoryOptions, setTerritoryOptions] = useState<string[]>([]);
   const [arenaOptions, setArenaOptions] = useState<string[]>([]);
 
@@ -46,27 +48,38 @@ const EnemiesNexus: React.FC = () => {
   };
   const [formData, setFormData] = useState(initialForm);
 
+  // Carregar dados e opções
   useEffect(() => {
-    // Carregar dados locais
+    // Carregar Inimigos (LocalStorage por enquanto, seguindo padrão anterior)
     const savedEnemies = localStorage.getItem('nexus_enemies_v1');
     if (savedEnemies) setEnemies(JSON.parse(savedEnemies));
 
-    // Carregar opções de território (do outro Nexus)
-    const savedTerritories = localStorage.getItem('nexus_territories_v2');
-    if (savedTerritories) {
-      const territories = JSON.parse(savedTerritories).map((t: any) => t.nome);
-      setTerritoryOptions(territories);
-    }
+    const fetchLinkedData = async () => {
+      setIsFetchingOptions(true);
+      const client = getSupabaseClient();
+      
+      // BUSCAR TERRITÓRIOS DIRETAMENTE DO NEXUS TERRITÓRIOS (Supabase)
+      const { data: territories, error } = await client
+        .from('territorios')
+        .select('nome')
+        .order('nome', { ascending: true });
 
-    // Carregar opções de arena (simulado ou do nexus arenas se existir)
-    const savedArenas = localStorage.getItem('nexus_arenas_v1');
-    if (savedArenas) {
-      setArenaOptions(JSON.parse(savedArenas).map((a: any) => a.nome));
-    } else {
-      // Fallback para exemplo
-      setArenaOptions(['Arena de Sangue', 'Cripta de Gelo', 'Coliseu das Sombras']);
-    }
-  }, []);
+      if (territories) {
+        setTerritoryOptions(territories.map(t => t.nome));
+      }
+
+      // Carregar Arenas do LocalStorage (ou Supabase se já migrado)
+      const savedArenas = localStorage.getItem('nexus_arenas_v1');
+      if (savedArenas) {
+        setArenaOptions(JSON.parse(savedArenas).map((a: any) => a.nome));
+      } else {
+        setArenaOptions(['Arena de Sangue', 'Cripta de Gelo', 'Coliseu das Sombras']);
+      }
+      setIsFetchingOptions(false);
+    };
+
+    fetchLinkedData();
+  }, [isModalOpen]); // Atualiza opções toda vez que o modal abre
 
   useEffect(() => {
     localStorage.setItem('nexus_enemies_v1', JSON.stringify(enemies));
@@ -109,7 +122,7 @@ const EnemiesNexus: React.FC = () => {
 
   const filteredEnemies = enemies.filter(en => 
     en.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    en.territorio.toLowerCase().includes(searchTerm.toLowerCase())
+    (en.territorio && en.territorio.toLowerCase().includes(searchTerm.toLowerCase()))
   );
 
   return (
@@ -200,7 +213,6 @@ const EnemiesNexus: React.FC = () => {
                         </p>
                       </div>
 
-                      {/* Mini Stats Bar */}
                       <div className="space-y-1.5 pt-3 border-t border-white/5">
                          <div className="flex justify-between items-end text-[7px] font-black text-rose-500 uppercase">
                             <span>Vitalidade (HP)</span>
@@ -260,7 +272,34 @@ const EnemiesNexus: React.FC = () => {
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                           <div className="space-y-6">
                              <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-3">Geolocalização & Arena</h4>
-                             <FormGroup label="TERRITÓRIO VINCULADO" type="select" options={['SELECIONAR...', ...territoryOptions]} value={formData.territorio} onChange={(v:any) => setFormData({...formData, territorio:v})} icon={<MapPin size={12}/>} />
+                             
+                             {/* CAMPO VINCULADO AO NEXUS TERRITÓRIOS */}
+                             <div className="flex flex-col gap-2">
+                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
+                                  <MapPin size={12} className="text-blue-500"/> TERRITÓRIO VINCULADO
+                                </label>
+                                <div className="relative group">
+                                  <select 
+                                    value={formData.territorio} 
+                                    onChange={(e) => setFormData({...formData, territorio: e.target.value})} 
+                                    disabled={isFetchingOptions}
+                                    className="w-full bg-slate-950 border border-slate-800 px-4 py-3 text-[11px] text-white outline-none focus:border-rose-500 transition-all cursor-pointer h-12 uppercase font-black appearance-none rounded-sm disabled:opacity-30"
+                                  >
+                                    <option value="">SELECIONAR TERRITÓRIO...</option>
+                                    {territoryOptions.length === 0 ? (
+                                      <option disabled>NENHUM SETOR DETECTADO</option>
+                                    ) : (
+                                      territoryOptions.map(t => <option key={t} value={t}>{t}</option>)
+                                    )}
+                                  </select>
+                                  {isFetchingOptions ? (
+                                    <Loader2 size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-500 animate-spin" />
+                                  ) : (
+                                    <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none group-hover:text-rose-400 transition-colors" />
+                                  )}
+                                </div>
+                             </div>
+
                              <FormGroup label="ARENA DE COMBATE" type="select" options={['SELECIONAR...', ...arenaOptions]} value={formData.arena} onChange={(v:any) => setFormData({...formData, arena:v})} icon={<Target size={12}/>} />
                           </div>
 
