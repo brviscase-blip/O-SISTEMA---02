@@ -1,7 +1,7 @@
 
 import React, { useState } from 'react';
 import { 
-  Lock, Database, Sword, X, Shield, Box, Crown, Package, MapPin, User, Skull, Radar
+  Lock, Database, Sword, X, Shield, Box, Crown, Package, MapPin, User, Skull
 } from 'lucide-react';
 import WeaponsNexus from './WeaponsNexus';
 import ArmorsNexus from './ArmorsNexus';
@@ -9,13 +9,12 @@ import InventoryNexus from './InventoryNexus';
 import TerritoriesNexus from './TerritoriesNexus';
 import PlayerNexus from './PlayerNexus';
 import EnemiesNexus from './EnemiesNexus';
-import ArenasNexus from './ArenasNexus';
 
 interface Props {
   onClose: () => void;
 }
 
-type AdminModule = 'PLAYER' | 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'TERRITORIO' | 'INIMIGOS' | 'ARENAS';
+type AdminModule = 'PLAYER' | 'ARMAS' | 'ARMADURAS' | 'INVENTARIO' | 'TERRITORIO' | 'INIMIGOS';
 
 const AdminSettings: React.FC<Props> = ({ onClose }) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -82,7 +81,6 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
             <AdminNavItem icon={<Shield size={18}/>} label="ARMADURAS" active={activeModule === 'ARMADURAS'} onClick={() => setActiveModule('ARMADURAS')} />
             <AdminNavItem icon={<Package size={18}/>} label="INVENTÁRIO" active={activeModule === 'INVENTARIO'} onClick={() => setActiveModule('INVENTARIO')} />
             <AdminNavItem icon={<MapPin size={18}/>} label="TERRITÓRIOS" active={activeModule === 'TERRITORIO'} onClick={() => setActiveModule('TERRITORIO')} />
-            <AdminNavItem icon={<Radar size={18}/>} label="ARENAS" active={activeModule === 'ARENAS'} onClick={() => setActiveModule('ARENAS')} />
             <AdminNavItem icon={<Skull size={18}/>} label="INIMIGOS" active={activeModule === 'INIMIGOS'} onClick={() => setActiveModule('INIMIGOS')} />
           </nav>
         </aside>
@@ -93,7 +91,6 @@ const AdminSettings: React.FC<Props> = ({ onClose }) => {
           {activeModule === 'ARMADURAS' && <ArmorsNexus />}
           {activeModule === 'INVENTARIO' && <InventoryNexus />}
           {activeModule === 'TERRITORIO' && <TerritoriesNexus />}
-          {activeModule === 'ARENAS' && <ArenasNexus />}
           {activeModule === 'INIMIGOS' && <EnemiesNexus />}
         </main>
       </div>

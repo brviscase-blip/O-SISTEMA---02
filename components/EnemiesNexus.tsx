@@ -4,12 +4,15 @@ import {
   Skull, Plus, Edit3, Trash2, X, Save, 
   Search, Database, Heart, Sword, Shield, 
   Zap, MapPin, Ghost, Target, ImagePlus, 
-  ChevronDown, Flame, ShieldAlert, Info, Loader2
+  ChevronDown, Flame, ShieldAlert, Info, Loader2,
+  AlertTriangle, RefreshCw
 } from 'lucide-react';
 import { getSupabaseClient } from '../supabaseClient';
+import { ArenaType, ItemRank } from '../types';
 
-const RANKS = ['S', 'A', 'B', 'C', 'D', 'E'];
+const RANKS: ItemRank[] = ['S', 'A', 'B', 'C', 'D', 'E'];
 const ENEMY_TYPES = ['INIMIGO COMUM (MINION)', 'BOSS DA DUNGEON'];
+const ARENA_TYPES: ArenaType[] = ['DUNGEON AZUL', 'DUNGEON VERMELHO', 'MASMORRA DE TRIAL'];
 
 const getRankTheme = (rank: string) => {
   switch (rank) {
@@ -27,18 +30,18 @@ const EnemiesNexus: React.FC = () => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [isFetchingOptions, setIsFetchingOptions] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [errorLog, setErrorLog] = useState<string | null>(null);
   
-  // Vínculos dinâmicos com Supabase
   const [territoryOptions, setTerritoryOptions] = useState<string[]>([]);
-  const [arenaOptions, setArenaOptions] = useState<string[]>([]);
-
   const fileInputRef = useRef<HTMLInputElement>(null);
+
   const initialForm = {
     nome: '',
     tipo: 'INIMIGO COMUM (MINION)',
-    arena: '',
-    rank: 'E',
+    arena: 'DUNGEON AZUL' as ArenaType,
+    rank: 'E' as ItemRank,
     territorio: '',
     hp: 100,
     atk: 10,
@@ -48,67 +51,82 @@ const EnemiesNexus: React.FC = () => {
   };
   const [formData, setFormData] = useState(initialForm);
 
-  // Carregar dados e opções
-  useEffect(() => {
-    // Carregar Inimigos (LocalStorage por enquanto, seguindo padrão anterior)
-    const savedEnemies = localStorage.getItem('nexus_enemies_v1');
-    if (savedEnemies) setEnemies(JSON.parse(savedEnemies));
-
-    const fetchLinkedData = async () => {
-      setIsFetchingOptions(true);
-      const client = getSupabaseClient();
-      
-      // BUSCAR TERRITÓRIOS DIRETAMENTE DO NEXUS TERRITÓRIOS (Supabase)
-      const { data: territories, error } = await client
-        .from('territorios')
-        .select('nome')
+  // FETCH DATA DO SUPABASE
+  const fetchEnemies = async () => {
+    setIsLoading(true);
+    const client = getSupabaseClient();
+    try {
+      const { data, error } = await client
+        .from('inimigos')
+        .select('*')
         .order('nome', { ascending: true });
+      if (error) throw error;
+      setEnemies(data || []);
+    } catch (err) {
+      console.error(err);
+      setErrorLog("ERRO DE CONEXÃO COM O NEXUS");
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
-      if (territories) {
-        setTerritoryOptions(territories.map(t => t.nome));
-      }
-
-      // Carregar Arenas do LocalStorage (ou Supabase se já migrado)
-      const savedArenas = localStorage.getItem('nexus_arenas_v1');
-      if (savedArenas) {
-        setArenaOptions(JSON.parse(savedArenas).map((a: any) => a.nome));
-      } else {
-        setArenaOptions(['Arena de Sangue', 'Cripta de Gelo', 'Coliseu das Sombras']);
-      }
-      setIsFetchingOptions(false);
-    };
-
-    fetchLinkedData();
-  }, [isModalOpen]); // Atualiza opções toda vez que o modal abre
+  const fetchTerritories = async () => {
+    const client = getSupabaseClient();
+    const { data } = await client.from('territorios').select('nome').order('nome', { ascending: true });
+    if (data) setTerritoryOptions(data.map(t => t.nome));
+  };
 
   useEffect(() => {
-    localStorage.setItem('nexus_enemies_v1', JSON.stringify(enemies));
-  }, [enemies]);
+    fetchEnemies();
+    fetchTerritories();
+  }, []);
 
-  const handleSave = (e: React.FormEvent) => {
+  const validateEntry = (data: any) => {
+    if (!RANKS.includes(data.rank)) return `RANK INVÁLIDO: ${data.rank}`;
+    if (!ENEMY_TYPES.includes(data.tipo)) return `TIPO INVÁLIDO: ${data.tipo}`;
+    if (!ARENA_TYPES.includes(data.arena)) return `ARENA INVÁLIDA: ${data.arena}`;
+    return null;
+  };
+
+  const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.nome.trim()) return;
 
-    if (editingId) {
-      setEnemies(prev => prev.map(en => en.id === editingId ? { ...formData, id: en.id } : en));
-    } else {
-      setEnemies(prev => [...prev, { ...formData, id: Date.now().toString() }]);
+    const error = validateEntry(formData);
+    if (error) {
+      setErrorLog(error);
+      return;
     }
 
-    setIsModalOpen(false);
-    setEditingId(null);
-    setFormData(initialForm);
+    setIsSaving(true);
+    const client = getSupabaseClient();
+
+    try {
+      if (editingId) {
+        const { error: dbErr } = await client.from('inimigos').update(formData).eq('id', editingId);
+        if (dbErr) throw dbErr;
+      } else {
+        const { error: dbErr } = await client.from('inimigos').insert([formData]);
+        if (dbErr) throw dbErr;
+      }
+      
+      setIsModalOpen(false);
+      setEditingId(null);
+      setFormData(initialForm);
+      setErrorLog(null);
+      fetchEnemies();
+    } catch (err: any) {
+      setErrorLog(`FALHA NO REGISTRO: ${err.message}`);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
-  const startEdit = (en: any) => {
-    setFormData(en);
-    setEditingId(en.id);
-    setIsModalOpen(true);
-  };
-
-  const deleteEnemy = (id: string) => {
-    if (confirm("EXPURGAR REGISTRO DE AMEAÇA?")) {
-      setEnemies(prev => prev.filter(en => en.id !== id));
+  const deleteEnemy = async (id: string) => {
+    if (confirm("EXPURGAR REGISTRO DE AMEAÇA NO BANCO DE DADOS?")) {
+      const client = getSupabaseClient();
+      await client.from('inimigos').delete().eq('id', id);
+      fetchEnemies();
     }
   };
 
@@ -134,19 +152,22 @@ const EnemiesNexus: React.FC = () => {
              <Skull size={28} />
           </div>
           <div>
-            <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Bestiário de Ameaças</h2>
-            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.5em] mt-1 italic">Catalogação Biometríca de Inimigos e Bosses</p>
+            <h2 className="text-4xl font-black text-white italic uppercase tracking-tighter">Bestiário Central</h2>
+            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-[0.5em] mt-1 italic">Sincronizado com Supabase Database v3.0</p>
           </div>
         </div>
 
         <div className="flex items-center gap-4 w-full md:w-auto">
+           <button onClick={fetchEnemies} className="p-4 bg-slate-900 border border-slate-800 rounded-sm text-slate-500 hover:text-white transition-all">
+              <RefreshCw size={20} className={isLoading ? 'animate-spin' : ''} />
+           </button>
            <div className="relative flex-1 md:w-80">
               <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-600" size={16} />
               <input 
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
                 className="w-full bg-[#030712] border border-slate-800 rounded-sm pl-12 pr-4 py-4 text-xs font-black text-white uppercase outline-none focus:border-blue-500 transition-all placeholder:text-slate-700"
-                placeholder="Identificar ameaça..."
+                placeholder="Identificar ameaça no banco..."
               />
            </div>
            <div className="bg-[#030712] border border-slate-800 p-4 rounded-sm flex items-center gap-4 shrink-0">
@@ -168,13 +189,17 @@ const EnemiesNexus: React.FC = () => {
             <span className="text-[10px] font-black text-slate-600 uppercase tracking-widest group-hover:text-white">Registrar Nova Ameaça</span>
          </button>
 
-         {filteredEnemies.map(en => {
+         {isLoading ? (
+           <div className="col-span-full h-96 flex items-center justify-center">
+              <Loader2 size={48} className="text-rose-500 animate-spin opacity-30" />
+           </div>
+         ) : filteredEnemies.map(en => {
            const theme = getRankTheme(en.rank);
            const isBoss = en.tipo === 'BOSS DA DUNGEON';
            return (
              <div 
                key={en.id}
-               onClick={() => startEdit(en)}
+               onClick={() => { setFormData(en); setEditingId(en.id); setIsModalOpen(true); }}
                className={`group relative aspect-[4/5] bg-[#030712] border-2 rounded-sm overflow-hidden cursor-pointer transition-all duration-500 hover:scale-[1.02] shadow-2xl ${theme.border} hover:${theme.glow}`}
              >
                 <div className="absolute inset-0 z-0">
@@ -208,15 +233,20 @@ const EnemiesNexus: React.FC = () => {
                         <h4 className="text-xl font-black text-white uppercase italic tracking-tighter leading-none group-hover:text-rose-400 transition-colors drop-shadow-lg">
                           {en.nome}
                         </h4>
-                        <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest mt-1 flex items-center gap-1">
-                           <MapPin size={10} className="text-blue-500" /> {en.territorio || 'Área Inexplorada'}
-                        </p>
+                        <div className="flex flex-col gap-1 mt-1">
+                          <p className="text-[8px] font-bold text-slate-500 uppercase tracking-widest flex items-center gap-1">
+                             <MapPin size={10} className="text-blue-500" /> {en.territorio || 'Área Inexplorada'}
+                          </p>
+                          <p className="text-[8px] font-black text-amber-500 uppercase tracking-widest flex items-center gap-1">
+                             <Target size={10} /> {en.arena}
+                          </p>
+                        </div>
                       </div>
 
                       <div className="space-y-1.5 pt-3 border-t border-white/5">
                          <div className="flex justify-between items-end text-[7px] font-black text-rose-500 uppercase">
                             <span>Vitalidade (HP)</span>
-                            <span className="text-white">{en.hp}</span>
+                            <span className="text-white tabular-nums">{en.hp}</span>
                          </div>
                          <div className="h-1 w-full bg-slate-950 rounded-full overflow-hidden">
                             <div className="h-full bg-rose-600" style={{ width: '100%' }} />
@@ -229,7 +259,6 @@ const EnemiesNexus: React.FC = () => {
                       </div>
                    </div>
                 </div>
-                <div className="absolute top-0 left-0 w-full h-px bg-rose-500/20 shadow-[0_0_15px_rgba(225,29,72,0.4)] translate-y-[-100%] group-hover:animate-[scan_3s_linear_infinite]" />
              </div>
            );
          })}
@@ -241,16 +270,22 @@ const EnemiesNexus: React.FC = () => {
            <div className="w-full max-w-5xl bg-[#030712] border border-slate-800 rounded-sm shadow-2xl relative overflow-hidden flex flex-col max-h-[90vh]">
               <div className="p-6 border-b border-slate-800 flex items-center justify-between bg-black/40">
                  <h3 className="text-sm font-black text-white uppercase tracking-[0.4em] flex items-center gap-3">
-                   <Skull size={18} className="text-rose-500" /> {editingId ? 'RECALIBRAR ASSINATURA BIOMÉTRICA' : 'REGISTRAR NOVA AMEAÇA'}
+                   <Database size={18} className="text-rose-500" /> {editingId ? 'RECALIBRAR ATRIBUTOS DATABASE' : 'INJETAR REGISTRO NO SUPABASE'}
                  </h3>
                  <button onClick={() => setIsModalOpen(false)} className="text-slate-600 hover:text-white transition-colors"><X size={24}/></button>
               </div>
 
+              {errorLog && (
+                <div className="bg-rose-600 text-white px-8 py-3 flex items-center gap-3 animate-in slide-in-from-top duration-300">
+                   <AlertTriangle size={18} />
+                   <span className="text-[10px] font-black uppercase tracking-widest">{errorLog}</span>
+                </div>
+              )}
+
               <form onSubmit={handleSave} className="flex-1 overflow-y-auto custom-scrollbar p-8">
                  <div className="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                    {/* Visual & Core Data */}
                     <div className="lg:col-span-4 space-y-6">
-                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Assinatura Visual (.PNG)</label>
+                       <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1">Assinatura Visual</label>
                        <div 
                          onClick={() => fileInputRef.current?.click()}
                          className={`w-full aspect-[3/4] bg-slate-950 border-2 border-dashed rounded-sm flex flex-col items-center justify-center cursor-pointer hover:border-rose-500/50 transition-all relative overflow-hidden group ${formData.img ? 'border-emerald-500/50' : 'border-slate-800'}`}
@@ -262,54 +297,40 @@ const EnemiesNexus: React.FC = () => {
                             <ImagePlus size={48} className="text-slate-800 group-hover:text-rose-500 transition-colors" />
                           )}
                        </div>
-                       <FormGroup label="NOME DO INIMIGO" value={formData.nome} onChange={(v:any) => setFormData({...formData, nome:v})} />
+                       <FormGroup label="NOME DA AMEAÇA" value={formData.nome} onChange={(v:any) => setFormData({...formData, nome:v})} />
                        <FormGroup label="TIPO" type="select" options={ENEMY_TYPES} value={formData.tipo} onChange={(v:any) => setFormData({...formData, tipo:v})} />
                        <FormGroup label="RANK" type="select" options={RANKS} value={formData.rank} onChange={(v:any) => setFormData({...formData, rank:v})} />
                     </div>
 
-                    {/* Vínculos e Atributos */}
                     <div className="lg:col-span-8 space-y-8">
                        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                           <div className="space-y-6">
-                             <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-3">Geolocalização & Arena</h4>
-                             
-                             {/* CAMPO VINCULADO AO NEXUS TERRITÓRIOS */}
-                             <div className="flex flex-col gap-2">
-                                <label className="text-[9px] font-black text-slate-500 uppercase tracking-widest ml-1 flex items-center gap-2">
-                                  <MapPin size={12} className="text-blue-500"/> TERRITÓRIO VINCULADO
-                                </label>
-                                <div className="relative group">
-                                  <select 
-                                    value={formData.territorio} 
-                                    onChange={(e) => setFormData({...formData, territorio: e.target.value})} 
-                                    disabled={isFetchingOptions}
-                                    className="w-full bg-slate-950 border border-slate-800 px-4 py-3 text-[11px] text-white outline-none focus:border-rose-500 transition-all cursor-pointer h-12 uppercase font-black appearance-none rounded-sm disabled:opacity-30"
-                                  >
-                                    <option value="">SELECIONAR TERRITÓRIO...</option>
-                                    {territoryOptions.length === 0 ? (
-                                      <option disabled>NENHUM SETOR DETECTADO</option>
-                                    ) : (
-                                      territoryOptions.map(t => <option key={t} value={t}>{t}</option>)
-                                    )}
-                                  </select>
-                                  {isFetchingOptions ? (
-                                    <Loader2 size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-blue-500 animate-spin" />
-                                  ) : (
-                                    <ChevronDown size={14} className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-600 pointer-events-none group-hover:text-rose-400 transition-colors" />
-                                  )}
-                                </div>
-                             </div>
-
-                             <FormGroup label="ARENA DE COMBATE" type="select" options={['SELECIONAR...', ...arenaOptions]} value={formData.arena} onChange={(v:any) => setFormData({...formData, arena:v})} icon={<Target size={12}/>} />
+                             <h4 className="text-[10px] font-black text-blue-500 uppercase tracking-widest border-l-2 border-blue-500 pl-3">Vínculos Estruturais</h4>
+                             <FormGroup 
+                               label="TERRITÓRIO" 
+                               type="select" 
+                               options={['GLOBAL', ...territoryOptions]} 
+                               value={formData.territorio} 
+                               onChange={(v:any) => setFormData({...formData, territorio: v})} 
+                               icon={<MapPin size={12}/>} 
+                             />
+                             <FormGroup 
+                               label="ARENA DESIGNADA" 
+                               type="select"
+                               options={ARENA_TYPES}
+                               value={formData.arena} 
+                               onChange={(v:any) => setFormData({...formData, arena:v})} 
+                               icon={<Target size={12}/>} 
+                             />
                           </div>
 
                           <div className="space-y-6">
                              <h4 className="text-[10px] font-black text-rose-500 uppercase tracking-widest border-l-2 border-rose-500 pl-3">Matriz de Atributos</h4>
                              <div className="grid grid-cols-2 gap-4">
-                                <FormGroup label="VITALIDADE (HP)" type="number" value={formData.hp} onChange={(v:any) => setFormData({...formData, hp:v})} icon={<Heart size={12} className="text-rose-500"/>} />
-                                <FormGroup label="ATAQUE (ATK)" type="number" value={formData.atk} onChange={(v:any) => setFormData({...formData, atk:v})} icon={<Sword size={12} className="text-amber-500"/>} />
-                                <FormGroup label="DEFESA (DEF)" type="number" value={formData.def} onChange={(v:any) => setFormData({...formData, def:v})} icon={<Shield size={12} className="text-blue-500"/>} />
-                                <FormGroup label="VELOCIDADE (SPD)" type="number" value={formData.spd} onChange={(v:any) => setFormData({...formData, spd:v})} icon={<Zap size={12} className="text-emerald-500"/>} />
+                                <FormGroup label="HP" type="number" value={formData.hp} onChange={(v:any) => setFormData({...formData, hp:v})} icon={<Heart size={12}/>} />
+                                <FormGroup label="ATK" type="number" value={formData.atk} onChange={(v:any) => setFormData({...formData, atk:v})} icon={<Sword size={12}/>} />
+                                <FormGroup label="DEF" type="number" value={formData.def} onChange={(v:any) => setFormData({...formData, def:v})} icon={<Shield size={12}/>} />
+                                <FormGroup label="SPD" type="number" value={formData.spd} onChange={(v:any) => setFormData({...formData, spd:v})} icon={<Zap size={12}/>} />
                              </div>
                           </div>
                        </div>
@@ -317,7 +338,7 @@ const EnemiesNexus: React.FC = () => {
                        <div className="bg-rose-950/10 border border-rose-900/30 p-6 rounded-sm">
                           <p className="text-[9px] text-slate-400 font-bold uppercase italic leading-relaxed">
                             <Info size={12} className="inline mr-2 text-rose-500" />
-                            Ameaças de <span className="text-rose-500">Rank S</span> registradas como <span className="text-rose-500">Boss</span> herdarão automaticamente multiplicadores de Dungeon Master.
+                            O banco de dados do Supabase validará as restrições de Rank e Arena no momento da sincronia. Valores ilegais resultarão em colapso do registro.
                           </p>
                        </div>
                     </div>
@@ -325,23 +346,14 @@ const EnemiesNexus: React.FC = () => {
 
                  <div className="mt-12 pt-8 border-t border-slate-800 flex justify-end gap-4">
                     <button type="button" onClick={() => setIsModalOpen(false)} className="px-8 py-4 text-[10px] font-black text-slate-500 uppercase hover:text-white transition-all">Cancelar</button>
-                    <button type="submit" className="px-16 py-4 bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black uppercase tracking-widest rounded-sm shadow-xl active:scale-95 flex items-center gap-3">
-                       <Save size={18} /> {editingId ? 'ATUALIZAR MATRIZ' : 'SINCRONIZAR AMEAÇA'}
+                    <button type="submit" disabled={isSaving} className="px-16 py-4 bg-rose-600 hover:bg-rose-500 text-white text-[11px] font-black uppercase tracking-widest rounded-sm shadow-xl active:scale-95 flex items-center gap-3">
+                       {isSaving ? <Loader2 size={18} className="animate-spin" /> : <Save size={18} />} {editingId ? 'ATUALIZAR BANCO' : 'SINCRONIZAR AMEAÇA'}
                     </button>
                  </div>
               </form>
            </div>
         </div>
       )}
-
-      <style>{`
-        @keyframes scan {
-          0% { transform: translateY(0); opacity: 0; }
-          10% { opacity: 1; }
-          90% { opacity: 1; }
-          100% { transform: translateY(400px); opacity: 0; }
-        }
-      `}</style>
     </div>
   );
 };
